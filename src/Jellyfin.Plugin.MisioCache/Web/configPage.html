@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><title>MisioCache — ustawienia</title></head><body>
+<div data-role="page" class="page type-interior pluginConfigurationPage" id="misioCacheConfigPage">
+ <style>
+ #misioCacheConfigPage .mc-wrap{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+ #misioCacheConfigPage .mc-panel{padding:18px 22px;margin:18px 0;border:1px solid rgba(145,183,245,.4);border-radius:12px;background:rgba(70,98,145,.09)}
+ #misioCacheConfigPage .mc-panel h2{margin:0 0 9px}
+ #misioCacheConfigPage .mc-grid{display:grid;grid-template-columns:minmax(180px,230px) minmax(0,1fr);gap:10px}
+ #misioCacheConfigPage .mc-grid dd{margin:0;overflow-wrap:anywhere}
+ #misioCacheConfigPage .mc-field{display:flex;gap:10px;margin:11px 0;align-items:center;flex-wrap:wrap}
+ #misioCacheConfigPage .mc-field input[type=number]{width:135px;max-width:100%}
+ #misioCacheConfigPage .mc-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+ #misioCacheConfigPage .mc-status{min-height:1.4em;white-space:pre-wrap;overflow-wrap:anywhere}
+ #misioCacheConfigPage .mc-note{opacity:.85}
+ @media(max-width:640px){#misioCacheConfigPage .mc-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
+ </style>
+ <div data-role="content" class="mc-wrap">
+  <h1>MisioCache — ustawienia i diagnostyka</h1>
+  <section class="mc-panel" aria-labelledby="mc-active-heading">
+   <h2 id="mc-active-heading">Stan funkcjonalności</h2>
+   <p><strong>Tryb diagnostyczny (seria 0.1).</strong> Wtyczka instaluje własny panel i zachowuje planowane ustawienia, ale <strong>nie zapisuje jeszcze filmu w cache</strong>, nie pobiera fragmentów w tle i <strong>nie zmienia odtwarzacza</strong> Jellyfina.</p>
+   <p class="mc-note">Przyszła integracja wymaga zgodnego adaptera odtwarzającego na urządzeniu. Instalacja DLL na NAS-ie nie daje dostępu do pamięci telefonu.</p>
+  </section>
+  <section class="mc-panel" aria-labelledby="mc-cap-heading">
+   <h2 id="mc-cap-heading">Diagnostyka obecnego urządzenia</h2>
+   <p class="mc-note">Poniższe dane dotyczą tej przeglądarki/okna aplikacji, w którym otwarto panel administratora. Nie oznaczają automatycznie zgodności natywnego odtwarzacza mobilnego.</p>
+   <dl class="mc-grid">
+    <dt>Bezpieczny kontekst HTTPS</dt><dd id="mc-secure">—</dd>
+    <dt>Cache Storage API</dt><dd id="mc-cache-storage">—</dd>
+    <dt>Service Worker API</dt><dd id="mc-worker">—</dd>
+    <dt>Oszacowane miejsce dostępne przeglądarce</dt><dd id="mc-quota">—</dd>
+    <dt>Pamięć zajęta przez dane tej witryny</dt><dd id="mc-usage">—</dd>
+   </dl>
+   <div class="mc-actions"><button type="button" class="raised emby-button" id="mc-check">Sprawdź ponownie</button></div>
+   <p id="mc-check-status" class="mc-status" role="status" aria-live="polite"></p>
+  </section>
+  <section class="mc-panel" aria-labelledby="mc-policy-heading">
+   <h2 id="mc-policy-heading">Preferowana polityka przyszłego cache</h2>
+   <p><strong>Te ustawienia są zapisywane, ale w v0.1.0.0 nie są wykonywane.</strong> Pozwalają zachować wymagania bez wpływu na działający odtwarzacz.</p>
+   <form id="mc-policy-form">
+    <label class="mc-field"><input type="checkbox" id="mc-until-end"/> Pobieraj film do końca, jeżeli urządzenie i protokół na to pozwalają</label>
+    <label class="mc-field"><input type="checkbox" id="mc-preserve"/> Zachowuj również już obejrzane fragmenty do ukończenia filmu</label>
+    <label class="mc-field"><input type="checkbox" id="mc-pause"/> Kontynuuj pobieranie na pauzie</label>
+    <label class="mc-field"><input type="checkbox" id="mc-finish"/> Zwolnij cache po ukończeniu oglądania</label>
+    <label class="mc-field" for="mc-retain">Czas przechowywania po przerwaniu (minuty): <input type="number" class="emby-input" min="0" max="10080" step="1" id="mc-retain"/><small>0 = bez automatycznego limitu czasu (nadal obowiązuje limit miejsca i system operacyjny)</small></label>
+    <label class="mc-field" for="mc-limit">Planowany limit cache na urządzeniu (GiB): <input type="number" class="emby-input" min="1" max="512" step="1" id="mc-limit"/></label>
+    <div class="mc-actions"><button type="submit" class="raised button-submit emby-button">Zapisz preferencje</button></div>
+    <p id="mc-save-status" class="mc-status" role="status" aria-live="polite"></p>
+   </form>
+  </section>
+  <section class="mc-panel"><h2>Aktualizacje</h2>
+   <p>MisioCache ma osobne repozytorium <a target="_blank" rel="noopener noreferrer" href="https://github.com/kumblip/MisioCache">kumblip/MisioCache</a> oraz własny manifest aktualizacji. Po pierwszym GitHub Release dodaj adres repozytorium w katalogu wtyczek Jellyfina. Kolejne wydania publikuje GitHub Actions z automatycznym numerowaniem.</p>
+  </section>
+ </div>
+ <script>
+ (function(){
+  'use strict';
+  const view=document.getElementById('misioCacheConfigPage');
+  const pluginId='5cf36828-5b7b-4d18-a28e-1e87922e505b';
+  const el=(id)=>view.querySelector('#'+id);
+  const fmt=(bytes)=>typeof bytes==='number'&&Number.isFinite(bytes)?(bytes/1073741824).toFixed(2)+' GiB':'Niedostępne';
+  async function check(){
+   el('mc-secure').textContent=window.isSecureContext?'Tak':'Nie (np. HTTP bez localhost)';
+   el('mc-cache-storage').textContent=('caches' in window)?'API dostępne':'Brak API';
+   el('mc-worker').textContent=('serviceWorker' in navigator)?'API dostępne':'Brak API';
+   el('mc-quota').textContent='Sprawdzanie…';el('mc-usage').textContent='Sprawdzanie…';
+   try{
+    if(!navigator.storage||typeof navigator.storage.estimate!=='function')throw Error('Brak StorageManager.estimate');
+    const estimate=await navigator.storage.estimate();
+    el('mc-quota').textContent=fmt(estimate.quota);
+    el('mc-usage').textContent=fmt(estimate.usage);
+    el('mc-check-status').textContent='Sprawdzono możliwości tego klienta. Nie uruchomiono żadnego buforowania.';
+   }catch(err){
+    el('mc-quota').textContent='Niedostępne';el('mc-usage').textContent='Niedostępne';
+    el('mc-check-status').textContent='Część informacji zablokowana przez środowisko urządzenia.';
+   }
+  }
+  async function read(){
+   try{
+    if(!window.ApiClient)throw Error('ApiClient niedostępny');
+    const c=await ApiClient.getPluginConfiguration(pluginId);
+    el('mc-until-end').checked=!!c.DownloadUntilEnd;
+    el('mc-preserve').checked=!!c.PreserveWatchedPartsUntilCompletion;
+    el('mc-pause').checked=!!c.DownloadWhilePaused;
+    el('mc-finish').checked=!!c.DeleteAfterCompleted;
+    el('mc-retain').value=Number.isFinite(Number(c.KeepAfterStopMinutes))?c.KeepAfterStopMinutes:240;
+    el('mc-limit').value=Number.isFinite(Number(c.PlannedMaxDeviceCacheGiB))?c.PlannedMaxDeviceCacheGiB:8;
+    el('mc-save-status').textContent='Preferencje odczytane z Jellyfina.';
+   }catch(err){el('mc-save-status').textContent='Nie udało się pobrać konfiguracji: '+String(err.message||err);}
+  }
+  async function save(event){
+   event.preventDefault();
+   el('mc-save-status').textContent='Zapisywanie…';
+   const retain=Number(el('mc-retain').value),limit=Number(el('mc-limit').value);
+   if(!Number.isInteger(retain)||retain<0||retain>10080||!Number.isInteger(limit)||limit<1||limit>512){
+    el('mc-save-status').textContent='Podaj poprawny czas 0–10080 minut i limit 1–512 GiB.';return;
+   }
+   try{
+    const c=await ApiClient.getPluginConfiguration(pluginId);
+    c.DownloadUntilEnd=el('mc-until-end').checked;
+    c.PreserveWatchedPartsUntilCompletion=el('mc-preserve').checked;
+    c.DownloadWhilePaused=el('mc-pause').checked;
+    c.DeleteAfterCompleted=el('mc-finish').checked;
+    c.KeepAfterStopMinutes=retain;
+    c.PlannedMaxDeviceCacheGiB=limit;
+    await ApiClient.updatePluginConfiguration(pluginId,c);
+    el('mc-save-status').textContent='Zapisano planowaną politykę. Odtwarzanie i cache nadal nie są modyfikowane przez tę wersję.';
+   }catch(err){el('mc-save-status').textContent='Nie udało się zapisać: '+String(err.message||err);}
+  }
+  if(view){
+   view.querySelector('#mc-check').addEventListener('click',check);
+   view.querySelector('#mc-policy-form').addEventListener('submit',save);
+   view.addEventListener('pageshow',function(){check();read();});
+  }
+ })();
+ </script>
+</div>
+</body></html>

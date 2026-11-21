@@ -1,0 +1,15 @@
+{
+  "guid": "5cf36828-5b7b-4d18-a28e-1e87922e505b",
+  "name": "MisioCache",
+  "description": "MisioCache v0.1: niezalezny panel diagnostyczny i konfiguracja planowanego cache na urzadzeniu; bez przechwytywania odtwarzania.",
+  "overview": "Jellyfin 12.4 plugin foundation for future device-side video caching, preserving native player.",
+  "owner": "kumblip",
+  "category": "General",
+  "version": "0.1.0.0",
+  "targetAbi": "12.4.0.0",
+  "status": "Active",
+  "autoUpdate": false,
+  "assemblies": [
+    "Jellyfin.Plugin.MisioCache.dll"
+  ]
+}

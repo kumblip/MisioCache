@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><title>MisioCache</title></head><body>
+<div data-role="page" class="page type-interior pluginConfigurationPage" id="misioCacheOverviewPage">
+ <div data-role="content">
+  <h1>MisioCache — panel wtyczki</h1>
+  <p>Otwieranie ogólnej strony wtyczki w panelu Jellyfin.</p>
+  <p><a id="mc-overview-open" class="raised emby-button" href="#/dashboard/plugins/5cf368285b7b4d18a28e1e87922e505b?name=MisioCache">Widok ogólny MisioCache</a></p>
+  <p><a class="emby-button" href="#/configurationpage?name=MisioCache">Ustawienia i diagnostyka</a></p>
+ </div>
+ <script>
+ (function(){
+  'use strict';
+  var view=document.getElementById('misioCacheOverviewPage');
+  var target='#/dashboard/plugins/5cf368285b7b4d18a28e1e87922e505b?name=MisioCache';
+  if(view)view.addEventListener('pageshow',function(){
+   if(window.location.hash!==target)window.location.hash=target;
+  });
+ })();
+ </script>
+</div>
+</body></html>
