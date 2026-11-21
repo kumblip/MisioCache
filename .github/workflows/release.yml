@@ -2,12 +2,6 @@ name: MisioCache — automatyczny Build i Release
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tools/**'
-      - 'tests/**'
-      - 'meta.json'
-      - '.github/workflows/**'
   workflow_dispatch:
 permissions:
   contents: write
