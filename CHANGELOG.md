@@ -1,3 +1,10 @@
+# MisioCache — kolejna aktualizacja po 0.1.0.0 (numer nadany automatycznie)
+
+- Aktywny panel aktualizacji jak w MisioFlix: lokalna/GitHub/manifest/katalog, wymuszanie katalogu oraz opcjonalna instalacja natywna przez Jellyfin.
+- Odświeżanie manifestu po SHA commit, walidacja GUID i kompatybilności ABI 12.4.0.0.
+- Wyłącznie administrator, bez zapisu DLL ani zmian odtwarzacza.
+- Zapisywany przełącznik sprawdzania co 15 minut.
+
 # Historia MisioCache
 
 ## v0.1.0.0 — pierwsze wydanie bazowe

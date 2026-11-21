@@ -8,6 +8,7 @@ namespace Jellyfin.Plugin.MisioCache.Configuration;
 /// </summary>
 public sealed class PluginConfiguration : BasePluginConfiguration
 {
+    public bool AutoCheckUpdates { get; set; } = true;
     public bool PreserveWatchedPartsUntilCompletion { get; set; } = true;
     public bool DownloadUntilEnd { get; set; } = true;
     public bool DownloadWhilePaused { get; set; } = true;

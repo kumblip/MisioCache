@@ -12,7 +12,9 @@
  #misioCacheConfigPage .mc-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
  #misioCacheConfigPage .mc-status{min-height:1.4em;white-space:pre-wrap;overflow-wrap:anywhere}
  #misioCacheConfigPage .mc-note{opacity:.85}
- @media(max-width:640px){#misioCacheConfigPage .mc-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
+ #misioCacheConfigPage .mc-updates-grid{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:9px;margin:12px 0}
+ #misioCacheConfigPage .mc-updates-grid dd{overflow-wrap:anywhere;margin:0}
+ @media(max-width:640px){#misioCacheConfigPage .mc-grid,#misioCacheConfigPage .mc-updates-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
  </style>
  <div data-role="content" class="mc-wrap">
   <h1>MisioCache — ustawienia i diagnostyka</h1>
@@ -36,7 +38,7 @@
   </section>
   <section class="mc-panel" aria-labelledby="mc-policy-heading">
    <h2 id="mc-policy-heading">Preferowana polityka przyszłego cache</h2>
-   <p><strong>Te ustawienia są zapisywane, ale w v0.1.0.0 nie są wykonywane.</strong> Pozwalają zachować wymagania bez wpływu na działający odtwarzacz.</p>
+   <p><strong>Te ustawienia są zapisywane, ale w diagnostycznej serii 0.1 nie są wykonywane.</strong> Pozwalają zachować wymagania bez wpływu na działający odtwarzacz.</p>
    <form id="mc-policy-form">
     <label class="mc-field"><input type="checkbox" id="mc-until-end"/> Pobieraj film do końca, jeżeli urządzenie i protokół na to pozwalają</label>
     <label class="mc-field"><input type="checkbox" id="mc-preserve"/> Zachowuj również już obejrzane fragmenty do ukończenia filmu</label>
@@ -48,8 +50,28 @@
     <p id="mc-save-status" class="mc-status" role="status" aria-live="polite"></p>
    </form>
   </section>
-  <section class="mc-panel"><h2>Aktualizacje</h2>
-   <p>MisioCache ma osobne repozytorium <a target="_blank" rel="noopener noreferrer" href="https://github.com/kumblip/MisioCache">kumblip/MisioCache</a> oraz własny manifest aktualizacji. Po pierwszym GitHub Release dodaj adres repozytorium w katalogu wtyczek Jellyfina. Kolejne wydania publikuje GitHub Actions z automatycznym numerowaniem.</p>
+  <section class="mc-panel" aria-label="Aktualizacje MisioCache">
+  <section id="mc-updates-panel" aria-labelledby="mc-updates-heading" style="padding:12px 0 22px">
+   <h2 id="mc-updates-heading">Aktualizacje MisioCache</h2>
+   <p>Porównanie zainstalowanej wersji, GitHub Release, manifestu oraz katalogu Jellyfina. „Wymuś aktualizację katalogu” zapisuje w Jellyfinie zweryfikowany manifest z bieżącej rewizji GitHuba — nie podmienia DLL.</p>
+   <dl class="mc-updates-grid">
+    <dt>Wersja zainstalowana</dt><dd id="mc-update-installed">Nie sprawdzono</dd>
+    <dt>Najnowsza wersja GitHub</dt><dd id="mc-update-github">Nie sprawdzono</dd>
+    <dt>Manifest repozytorium</dt><dd id="mc-update-manifest">Nie sprawdzono</dd>
+    <dt>Katalog Jellyfin</dt><dd id="mc-update-catalog">Nie sprawdzono</dd>
+    <dt>Ostatnia kontrola</dt><dd id="mc-update-checked">—</dd>
+   </dl>
+   <label class="inputContainer" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+    <input type="checkbox" id="mc-update-auto" checked />
+    <span>Automatyczne sprawdzanie co 15 minut (bez automatycznego instalowania)</span>
+   </label>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
+    <button type="button" class="raised emby-button" id="mc-update-check">Wymuś aktualizację katalogu Jellyfina</button>
+    <button type="button" class="emby-button" id="mc-update-install" disabled>Zainstaluj aktualizację</button>
+   </div>
+   <p id="mc-update-status" role="status" aria-live="polite">Gotowe do sprawdzenia.</p>
+   <p><small>Instalacja odbywa się wyłącznie przez natywny menedżer Jellyfina, z repozytorium MisioCache. Nie jest możliwa, dopóki odpowiednia zgodna wersja nie pojawi się w jego katalogu. Po instalacji może być wymagany restart serwera.</small></p>
+  </section>
   </section>
  </div>
  <script>
@@ -107,7 +129,227 @@
     el('mc-save-status').textContent='Zapisano planowaną politykę. Odtwarzanie i cache nadal nie są modyfikowane przez tę wersję.';
    }catch(err){el('mc-save-status').textContent='Nie udało się zapisać: '+String(err.message||err);}
   }
+  const updates=(function(){
+   const panel=view.querySelector('#mc-updates-panel');
+   const refs={installed:panel.querySelector('#mc-update-installed'),
+    github:panel.querySelector('#mc-update-github'),manifest:panel.querySelector('#mc-update-manifest'),
+    catalog:panel.querySelector('#mc-update-catalog'),checked:panel.querySelector('#mc-update-checked'),
+    status:panel.querySelector('#mc-update-status'),check:panel.querySelector('#mc-update-check'),
+    install:panel.querySelector('#mc-update-install'),auto:panel.querySelector('#mc-update-auto')};
+   const GUID='5cf36828-5b7b-4d18-a28e-1e87922e505b';
+   const REPO='https://raw.githubusercontent.com/kumblip/MisioCache/main/manifest.json';
+   const repoPrefix='https://raw.githubusercontent.com/kumblip/MisioCache/';
+   let pinnedRevision=null;
+   let snapshot=null;
+   let timer=null;
+   let refreshSeq=0;
+   const get=(obj,...names)=>{for(const name of names){if(obj&&obj[name]!==undefined)return obj[name];}return undefined;};
+   const norm=v=>String(v||'').replace(/^v/i,'').trim();
+   const compare=(a,b)=>{const aa=norm(a).split('.').map(Number),bb=norm(b).split('.').map(Number);
+    if(!aa.length||!bb.length||aa.some(x=>!Number.isInteger(x))||bb.some(x=>!Number.isInteger(x)))return 0;
+    for(let i=0;i<4;i++){if((aa[i]||0)!==(bb[i]||0))return (aa[i]||0)>(bb[i]||0)?1:-1;}return 0;};
+   const status=t=>{refs.status.textContent=t;};
+   const api=path=>typeof ApiClient?.getUrl==='function'?ApiClient.getUrl(path):'/'+path;
+   const auth=()=>{
+     const t=typeof ApiClient?.accessToken==='function'?ApiClient.accessToken():ApiClient?.accessToken;
+     if(!t)throw Error('Brak aktywnego tokenu Jellyfin.');
+     return {Authorization:'MediaBrowser Client="MisioCache", Device="Jellyfin Web", DeviceId="misiocache-updates", Version="0.1.0", Token="'+String(t).replace(/["\r\n]/g,'')+'"'};
+   };
+   async function query(path,method='GET',payload=null){
+    const h=auth();
+    if(payload!==null)h['Content-Type']='application/json';
+    const response=await fetch(api(path),{method,headers:h,cache:'no-store',
+      ...(payload!==null?{body:JSON.stringify(payload)}:{})});
+    if(!response.ok){
+      let details='';
+      try{const data=await response.json();details=String(data?.error||data?.message||'');}catch(_){}
+      throw Error(method+' '+path+': HTTP '+response.status+(details?' – '+details:''));
+    }
+    if(response.status===204||response.status===202)return null;
+    return await response.json();
+   }
+   // Canonical URL, earlier cache-buster and immutable commit-pinned URLs
+   // all belong to this plugin. Never treat an unrelated repository as ours.
+   const isOwnRepo=url=>{
+    const clean=String(url||'').split(/[?#]/)[0].replace(/\/$/,'');
+    if(clean.toLowerCase()===REPO.toLowerCase())return true;
+    if(!clean.toLowerCase().startsWith(repoPrefix.toLowerCase())||!clean.toLowerCase().endsWith('/manifest.json'))return false;
+    return /^[a-f0-9]{40}$/i.test(clean.slice(repoPrefix.length,-'/manifest.json'.length));
+   };
+   async function readCatalog(){
+    const [packages,repositories]=await Promise.all([query('Packages'),query('Repositories')]);
+    const items=Array.isArray(packages)?packages:get(packages,'Items','items')||[];
+    const repoList=Array.isArray(repositories)?repositories:[];
+    const ownRepo=repoList.find(r=>isOwnRepo(get(r,'Url','url')) && get(r,'Enabled','enabled')!==false);
+    const repoOK=!!ownRepo;
+    const pkg=items.find(p=>String(get(p,'Guid','guid')||'').toLowerCase()===GUID)
+      ||items.find(p=>String(get(p,'Name','name')||'').toLowerCase()==='misiocache');
+    const versions=get(pkg,'Versions','versions')||[];
+    const max=versions.map(v=>({version:norm(get(v,'Version','version')),abi:get(v,'TargetAbi','targetAbi')}))
+      .filter(v=>/^\d+(\.\d+){2,3}$/.test(v.version))
+      .sort((a,b)=>compare(b.version,a.version));
+    return {repoOK,repoUrl:get(ownRepo,'Url','url')||REPO,versions:max};
+   }
+   async function refresh(force){
+    const seq=++refreshSeq;
+    refs.check.disabled=true;refs.install.disabled=true;
+    status(force?'Odczytuję aktualne dane ze wszystkich źródeł…':'Sprawdzam aktualizacje…');
+    // The server may serialize record properties as PascalCase while browser
+    // clients normally expect camelCase. Accept BOTH without losing dates,
+    // versions or useful source error messages.
+    const raw=await Promise.allSettled([
+      query('MisioCache/api/updates/status'+(force?'?force=true':'')),
+      readCatalog(),
+      query('Plugins')
+    ]);
+    if(seq!==refreshSeq)return null; // never let an older request erase fresh results
+    const remoteError=raw[0].status==='rejected'?String(raw[0].reason?.message||raw[0].reason):null;
+    const source=raw[0].status==='fulfilled'?raw[0].value:null;
+    const remote=source?{
+      installedVersion:get(source,'installedVersion','InstalledVersion'),
+      gitHubVersion:get(source,'gitHubVersion','GitHubVersion'),
+      gitHubError:get(source,'gitHubError','GitHubError'),
+      repositoryVersion:get(source,'repositoryVersion','RepositoryVersion'),
+      repositoryTargetAbi:get(source,'repositoryTargetAbi','RepositoryTargetAbi'),
+      repositoryError:get(source,'repositoryError','RepositoryError'),
+      checkedAt:get(source,'checkedAt','CheckedAt')
+    }:null;
+    const catalog=raw[1].status==='fulfilled'?raw[1].value:null;
+    const catError=raw[1].status==='rejected'?String(raw[1].reason?.message||raw[1].reason):null;
+    const plugins=raw[2].status==='fulfilled'?raw[2].value:null;
+    const pluginError=raw[2].status==='rejected'?String(raw[2].reason?.message||raw[2].reason):null;
+    const installedItem=Array.isArray(plugins)?plugins.find(p=>
+      String(get(p,'Id','id')||'').toLowerCase()===GUID ||
+      String(get(p,'Name','name')||'').toLowerCase()==='misiocache'):null;
+    const installedFromJellyfin=get(installedItem,'Version','version');
+    const installed=norm(installedFromJellyfin||remote?.installedVersion);
+    const installedValid=/^\d+(\.\d+){2,3}$/.test(installed);
+    const gh=norm(remote?.gitHubVersion);
+    let manifest=norm(remote?.repositoryVersion);
+    const githubError=remote?.gitHubError||remoteError;
+    const manifestError=remote?.repositoryError||remoteError;
+    snapshot={remote,catalog,installed:installedValid?installed:null};
+    refs.installed.textContent=installedValid?installed:('Błąd odczytu: '+(pluginError||remoteError||
+      'Jellyfin nie zwrócił wersji wtyczki'));
+    refs.github.textContent=/^\d+(\.\d+){2,3}$/.test(gh)?gh:
+      'Brak odczytu GitHub Release: '+(githubError||'odpowiedź nie zawiera wersji');
+    refs.manifest.textContent=/^\d+(\.\d+){2,3}$/.test(manifest)?
+      manifest+' (ABI '+(remote?.repositoryTargetAbi||'?')+')':
+      'Brak odczytu manifestu: '+(manifestError||'odpowiedź nie zawiera wersji');
+    refs.catalog.textContent=catError?'Błąd katalogu: '+catError:
+      catalog&&!catalog.repoOK?'Brak aktywnego repozytorium MisioCache':
+      catalog?.versions?.length?catalog.versions[0].version:'MisioCache nie jest widoczny w katalogu';
+    const checked=remote?.checkedAt?new Date(remote.checkedAt):new Date();
+    refs.checked.textContent=(Number.isNaN(checked.getTime())?new Date():checked).toLocaleString('pl-PL')+
+      (remote?.checkedAt?'':' (odczyt lokalny)');
+    // When the admin has just successfully pinned a manifest through Jellyfin,
+    // trust that independently verified revision instead of a possibly stale
+    // moving /main URL still returned by the separate discovery service.
+    // The repository URL survives page reloads because it is persisted by
+    // Jellyfin. Recognize it even if this browser has no in-memory pin yet.
+    const repoUrl=String(catalog?.repoUrl||'');
+    const isCommitted=/^https:\/\/raw\.githubusercontent\.com\/kumblip\/MisioCache\/[a-f0-9]{40}\/manifest\.json$/i.test(repoUrl);
+    const newestNative=catalog?.versions?.[0];
+    const nativePinned=(isCommitted&&newestNative&&compare(newestNative.version,manifest)>=0)?
+      {version:newestNative.version,abi:newestNative.abi}:null;
+    const trustedPin=pinnedRevision||nativePinned;
+    if(remote&&trustedPin&&catalog?.versions?.some(v=>norm(v.version)===norm(trustedPin.version))){
+      remote.repositoryVersion=trustedPin.version;
+      remote.repositoryTargetAbi=trustedPin.abi;
+      refs.manifest.textContent=trustedPin.version+' (ABI '+trustedPin.abi+', wczytano przez Jellyfin)';
+    }
+    manifest=norm(remote?.repositoryVersion);
+    const matchingCatalog=catalog?.versions?.find(v=>norm(v.version)===manifest);
+    const abiCompatible=norm(remote?.repositoryTargetAbi)==='12.4.0.0' &&
+      (!matchingCatalog?.abi||norm(matchingCatalog.abi)==='12.4.0.0');
+    // A GitHub API failure must not block installing an independently validated
+    // version from Jellyfin's repository. Never use GitHub data as an install URL.
+    const releaseCompatible=!/^\d+(\.\d+){2,3}$/.test(gh)||compare(gh,manifest)===0;
+    const installable=!!(installedValid&&manifest&&catalog?.repoOK&&matchingCatalog&&
+      abiCompatible&&releaseCompatible&&compare(manifest,installed)>0);
+    refs.install.disabled=!installable;
+    if(catError)status('Nie udało się odczytać katalogu Jellyfin: '+catError);
+    else if(!catalog?.repoOK)status('Dodaj jedno aktywne repozytorium MisioCache w Jellyfin: '+REPO);
+    else if(!remote)status('Katalog Jellyfin odczytany, ale serwerowy odczyt GitHub/manifestu zakończył się błędem: '+remoteError);
+    else if(!manifest)status('Katalog Jellyfin odczytany. Manifest: '+(manifestError||'brak dostępnej wersji'));
+    else if(gh&&compare(gh,manifest)>0)status('GitHub Release '+gh+' jest nowszy niż manifest '+manifest+'.');
+    else if(!matchingCatalog)status('Manifest wskazuje '+manifest+', a katalog Jellyfin nie zawiera tej wersji. Wybierz wymuszenie.');
+    else if(!abiCompatible)status('Wersja '+manifest+' ma niezgodne ABI względem Jellyfin 12.4.');
+    else if(installable)status('Dostępna aktualizacja '+manifest+'. Możesz zlecić instalację przez Jellyfin.');
+    else if(installedValid&&compare(manifest,installed)<=0)
+      status('Dane odświeżono. MisioCache '+installed+' jest aktualny wg manifestu i katalogu Jellyfin.'+
+        (!gh?' Odczyt GitHub Release nie powiódł się.':''));
+    else status('Dane odświeżono. Instalacja jest obecnie niedostępna; sprawdź szczegóły pól powyżej.');
+    refs.check.disabled=false;
+    return {remote,catalog,installed:installedValid?installed:null,errors:{remoteError,catError,pluginError}};
+   }
+   async function forceCheck(){
+    refs.check.disabled=true;refs.install.disabled=true;
+    status('Proszę o wczytanie nowego manifestu przez natywny menedżer Jellyfina…');
+    let result=null;
+    try{
+      // ADMIN ONLY. Server uses Jellyfin IInstallationManager.GetPackages()
+      // to verify a Git SHA-pinned manifest, then persists exactly this one
+      // repository URL through IServerConfigurationManager.SaveConfiguration().
+      // Do not POST /Repositories from the browser or edit system.xml/DLLs.
+      const data=await query('MisioCache/api/updates/native-catalog/refresh','POST');
+      const version=norm(get(data,'repositoryVersion','RepositoryVersion'));
+      const abi=norm(get(data,'repositoryTargetAbi','RepositoryTargetAbi'));
+      if(!get(data,'verifiedByJellyfin','VerifiedByJellyfin')||
+         !/^\d+(\.\d+){2,3}$/.test(version)||abi!=='12.4.0.0')
+         throw Error('Jellyfin nie potwierdził zgodnej wersji manifestu.');
+      pinnedRevision={version,abi};
+      result=await refresh(true); // Read /Packages AFTER native config saved.
+      if(!result?.catalog?.versions?.some(v=>norm(v.version)===version))
+        status('Zapisano manifest '+version+' w konfiguracji Jellyfina, lecz /Packages nadal go nie pokazuje. Sprawdź log Jellyfina lub inne repozytoria.');
+      else status('Jellyfin wczytał manifest '+version+' i udostępnia tę wersję w katalogu. Jeżeli jest nowsza od zainstalowanej, wybierz „Zainstaluj aktualizację”.');
+    }catch(error){
+      const message=String(error?.message||error);
+      // 400 from our endpoint includes a meaningful reason in its JSON body.
+      pinnedRevision=null;
+      try{await refresh(true);}catch(_){}
+      status('Wymuszenie aktualizacji katalogu Jellyfina nie powiodło się: '+message);
+    }finally{refs.check.disabled=false;}
+   }
+   async function install(){
+    if(!snapshot||refs.install.disabled)return;
+    const version=norm(snapshot.remote?.repositoryVersion);
+    // Only exact version verified in both GitHub and native Jellyfin catalog.
+    if(!snapshot.catalog?.repoOK||!snapshot.catalog.versions.some(v=>norm(v.version)===version)||
+       norm(snapshot.remote.repositoryTargetAbi)!=='12.4.0.0'||
+       (snapshot.remote.gitHubVersion&&norm(snapshot.remote.gitHubVersion)!==version))return;
+    if(!window.confirm('Zlecić instalację MisioCache '+version+' przez Jellyfin? Po zakończeniu może być wymagany restart serwera.'))return;
+    refs.install.disabled=true;
+    try{
+     const params=new URLSearchParams({assemblyGuid:GUID,version,repositoryUrl:snapshot.catalog.repoUrl});
+     await query('Packages/Installed/MisioCache?'+params.toString(),'POST');
+     status('Jellyfin przyjął zlecenie instalacji '+version+'. Sprawdź stan instalacji w panelu wtyczek. Po aktualizacji może być wymagany restart.');
+    }catch(error){status('Nie udało się zlecić instalacji: '+error.message);}
+   }
+   refs.check.addEventListener('click',forceCheck);
+   refs.install.addEventListener('click',install);
+   refs.auto.addEventListener('change',async()=>{
+    const selected=refs.auto.checked;
+    try{const config=await ApiClient.getPluginConfiguration(pluginId);
+      config.AutoCheckUpdates=selected;
+      await ApiClient.updatePluginConfiguration(pluginId,config);
+      status(selected?'Włączono sprawdzanie co 15 minut.':'Wyłączono automatyczne sprawdzanie; ręczne nadal działa.');
+    }catch(error){refs.auto.checked=!selected;status('Nie zapisano ustawienia: '+error.message);}
+   });
+   function activate(){
+    ApiClient.getPluginConfiguration(pluginId).then(config=>{
+      refs.auto.checked=config.AutoCheckUpdates!==false;
+    }).catch(()=>{});
+    void refresh(false);
+    if(timer!==null)window.clearInterval(timer);
+    timer=window.setInterval(()=>{
+      if(panel.isConnected&&refs.auto.checked)void refresh(false);
+    },15*60*1000);
+   }
+   return {activate};
+  })();
   if(view){
+   updates.activate();
    view.querySelector('#mc-check').addEventListener('click',check);
    view.querySelector('#mc-policy-form').addEventListener('submit',save);
    view.addEventListener('pageshow',function(){check();read();});

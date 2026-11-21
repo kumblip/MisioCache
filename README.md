@@ -1,6 +1,6 @@
 # MisioCache — osobna wtyczka Jellyfin 12.4
 
-**Pierwsze wydanie:** `0.1.0.0` — instalowalna baza diagnostyczna. Nie jest to jeszcze aktywny cache wideo.
+**Wersja bazowa:** `0.1.0.0` — instalowalna baza diagnostyczna. Nie jest to jeszcze aktywny cache wideo.
 
 MisioCache nie modyfikuje MisioFlixa, Jellyfin Web, ani obecnego odtwarzacza. W panelu administratora Jellyfin pojawiają się dwa wpisy: **MisioCache** (widok ogólny) oraz **MisioCache — ustawienia** (konfiguracja i diagnostyka urządzenia). Zapisywana jest przyszła polityka cache; żadna polityka nie jest wykonywana w 0.1.
 
@@ -38,3 +38,9 @@ python3 tools/package.py
 ```
 
 W GitHub Actions build jest wykonywany automatycznie. Zobacz `WDROZENIE_GITHUB.md` i `PLAN_DALSZEGO_ROZWOJU.md`.
+
+## Wymuszanie aktualizacji katalogu Jellyfina (od pierwszej aktualizacji)
+
+W panelu **MisioCache — ustawienia → Aktualizacje MisioCache** można porównać 4 wersje: lokalną, GitHub Release, manifest i katalog Jellyfina. **Wymuś aktualizację katalogu Jellyfina** odczytuje commit `main`, weryfikuje immutable manifest przez natywny `IInstallationManager.GetPackages` Jellyfina i aktualizuje wyłącznie URL własnego repozytorium w konfiguracji serwera. Nie nadpisuje DLL i nie wykonuje instalacji. **Zainstaluj aktualizację** uruchamia natywny `POST /Packages/Installed/MisioCache` po potwierdzeniu administratora, wyłącznie dla zgodnego ABI 12.4.0.0 i nowej wersji obecnej w katalogu. Po instalacji Jellyfin może wymagać restartu.
+
+Przed użyciem przycisku dodaj **jedno aktywne** repozytorium o URL `https://raw.githubusercontent.com/kumblip/MisioCache/main/manifest.json` w `Dashboard → Wtyczki → Repozytoria`. Funkcja może potem zmienić jego URL na rewizję SHA; jest to celowe i nie należy dodawać drugiej kopii. Aktualizacja sprawdza status co 15 minut, a instalacja zawsze wymaga decyzji administratora. Wtyczka pozostaje diagnostyczna; nadal nie przechwytuje strumienia wideo.

@@ -45,9 +45,10 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
                       'DeleteAfterCompleted','KeepAfterStopMinutes','PlannedMaxDeviceCacheGiB'):
             self.assertIn(field,self.settings)
     def test_no_playback_hooks(self):
-        for needle in ('playbackManager','fetch(', 'XMLHttpRequest(', 'serviceWorker.register(', 'CacheDataSource', 'new MediaSource('):
+        for needle in ('playbackManager', 'XMLHttpRequest(', 'serviceWorker.register(', 'CacheDataSource', 'new MediaSource(', '/Videos/', 'MediaSource(', 'video.src'):
             self.assertNotIn(needle,self.settings)
         self.assertIn('nie zapisuje jeszcze filmu w cache',self.settings)
+        self.assertIn("query('MisioCache/api/updates/status'",self.settings)
     def test_auto_release_on_commit(self):
         self.assertIn('  push:\n',self.release)
         self.assertIn('    branches: [main]',self.release)
