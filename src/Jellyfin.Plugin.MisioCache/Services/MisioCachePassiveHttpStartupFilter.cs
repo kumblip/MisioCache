@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Jellyfin.Plugin.MisioCache.Services;
 
@@ -51,21 +53,62 @@ public sealed class MisioCachePassiveHttpStartupFilter : IStartupFilter
                 // Only temporary numeric parsing of these headers; no raw header is kept.
                 var rawRequestedRange = requestedRange ? context.Request.Headers["Range"].ToString() : string.Empty;
                 var hasVideoId = TryExtractMediaId(path, out var mediaId);
+                // Only file GET uses the optional body writer meter. All other requests
+                // keep the original pipeline byte-for-byte, including HEAD and HLS.
+                // A missing or incompatible feature MUST NOT prevent playback.
+                var startTick = Stopwatch.GetTimestamp();
+                var originalFeature = context.Features.Get<IHttpResponseBodyFeature>();
+                MisioCacheResponseByteMeter? meter = null;
+                MisioCacheMeasuringBodyFeature? wrapper = null;
+                if (kind == "file" && HttpMethods.IsGet(method) && originalFeature != null
+                    && Jellyfin.Plugin.MisioCache.Plugin.Instance?.Configuration.EnableResponseBodyByteMeter == true)
+                {
+                    try
+                    {
+                        meter = new MisioCacheResponseByteMeter();
+                        wrapper = new MisioCacheMeasuringBodyFeature(originalFeature, meter);
+                        context.Features.Set<IHttpResponseBodyFeature>(wrapper);
+                    }
+                    catch { meter = null; wrapper = null; }
+                }
+
+                bool failed = false;
                 try
                 {
                     await nextRequest().ConfigureAwait(false);
                 }
+                catch
+                {
+                    failed = true;
+                    throw;
+                }
                 finally
                 {
-                    // Even a telemetry failure must never affect the media response.
+                    // Never leave the instrumentation feature installed for another
+                    // middleware or request, even when a player disconnects.
+                    if (wrapper != null && ReferenceEquals(context.Features.Get<IHttpResponseBodyFeature>(), wrapper))
+                    {
+                        try { context.Features.Set(originalFeature); }
+                        catch { /* best effort */ }
+                    }
                     try
                     {
+                        var elapsedMs = (long)Stopwatch.GetElapsedTime(startTick).TotalMilliseconds;
+                        var firstMs = meter?.FirstWriteTick > 0
+                            ? (long?)Stopwatch.GetElapsedTime(startTick, meter.FirstWriteTick).TotalMilliseconds
+                            : null;
+                        // Zero bytes alone is NOT a trustworthy measurement when
+                        // another middleware bypassed the feature or SendFile failed.
+                        long? acceptedBytes = meter != null && !meter.UnverifiedSendfile && meter.Writes > 0
+                            ? meter.Bytes : null;
                         _store.Record(kind, requestedRange, context.Response.StatusCode,
                             context.Response.Headers.ContainsKey("Content-Range"),
                             rawRequestedRange, context.Response.Headers["Content-Range"].ToString(),
-                            hasVideoId ? mediaId : Guid.Empty, HttpMethods.IsHead(method));
+                            hasVideoId ? mediaId : Guid.Empty, HttpMethods.IsHead(method),
+                            acceptedBytes, elapsedMs, firstMs,
+                            context.RequestAborted.IsCancellationRequested, failed);
                     }
-                    catch { /* diagnostics are intentionally best effort */ }
+                    catch { /* telemetry must never break native playback */ }
                 }
             });
             next(app);

@@ -18,7 +18,8 @@ public sealed class MisioCacheDiagnosticsController : ControllerBase
     public IActionResult GetTraffic()
     {
         Response.Headers.CacheControl = "private, no-store";
-        return Ok(_store.Snapshot(Plugin.Instance?.Configuration.EnablePassiveHttpDiagnostics == true));
+        return Ok(_store.Snapshot(Plugin.Instance?.Configuration.EnablePassiveHttpDiagnostics == true,
+            Plugin.Instance?.Configuration.EnableResponseBodyByteMeter == true));
     }
 
     [HttpPost("http/reset")]
@@ -26,6 +27,7 @@ public sealed class MisioCacheDiagnosticsController : ControllerBase
     {
         _store.Clear();
         Response.Headers.CacheControl = "private, no-store";
-        return Ok(_store.Snapshot(Plugin.Instance?.Configuration.EnablePassiveHttpDiagnostics == true));
+        return Ok(_store.Snapshot(Plugin.Instance?.Configuration.EnablePassiveHttpDiagnostics == true,
+            Plugin.Instance?.Configuration.EnableResponseBodyByteMeter == true));
     }
 }

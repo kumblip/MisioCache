@@ -11,6 +11,8 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     public bool AutoCheckUpdates { get; set; } = true;
     /// <summary>Opt-in: anonymous in-memory counters for video HTTP requests, with no request body or URL stored.</summary>
     public bool EnablePassiveHttpDiagnostics { get; set; } = false;
+    /// <summary>Extra opt-in: instrument HTTP response writes for test sessions only. Default OFF.</summary>
+    public bool EnableResponseBodyByteMeter { get; set; } = false;
     public bool PreserveWatchedPartsUntilCompletion { get; set; } = true;
     public bool DownloadUntilEnd { get; set; } = true;
     public bool DownloadWhilePaused { get; set; } = true;

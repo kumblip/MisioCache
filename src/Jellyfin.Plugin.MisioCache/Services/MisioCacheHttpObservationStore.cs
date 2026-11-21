@@ -32,7 +32,8 @@ public sealed class MisioCacheHttpObservationStore
 
     private readonly record struct Sample(DateTimeOffset At, string Kind, bool Range,
         int Status, bool ContentRange, string MediaTag, long? Start, long? End,
-        long? RequestedStart);
+        long? RequestedStart, long? AcceptedBytes, long ElapsedMs, long? FirstWriteMs,
+        bool Cancelled, bool Failed);
 
     public void MarkPipelineInstalled() => _pipelineInstalled = true;
 
@@ -47,6 +48,17 @@ public sealed class MisioCacheHttpObservationStore
     /// </summary>
     public void Record(string kind, bool requestedRange, int statusCode, bool hasContentRange,
         string requestRangeHeader, string contentRangeHeader, Guid mediaGuid, bool isHead)
+        => Record(kind, requestedRange, statusCode, hasContentRange, requestRangeHeader,
+            contentRangeHeader, mediaGuid, isHead, null, 0, null, false, false);
+
+    /// <summary>
+    /// acceptedBytes is counted at the response-body writer boundary only. It
+    /// means bytes submitted to ASP.NET transport, NOT bytes acknowledged over
+    /// the network, stored on Android, or loaded into a client-side cache.
+    /// </summary>
+    public void Record(string kind, bool requestedRange, int statusCode, bool hasContentRange,
+        string requestRangeHeader, string contentRangeHeader, Guid mediaGuid, bool isHead,
+        long? acceptedBytes, long elapsedMs, long? firstWriteMs, bool cancelled, bool failed)
     {
         string tag = !isHead && kind == "file" && requestedRange && statusCode == 206
             && mediaGuid != Guid.Empty ? TransientMediaTag(mediaGuid) : string.Empty;
@@ -64,7 +76,8 @@ public sealed class MisioCacheHttpObservationStore
             }
         }
         _samples.Enqueue(new Sample(DateTimeOffset.UtcNow, kind, requestedRange, statusCode,
-            hasContentRange, tag, start, end, requestedStart));
+            hasContentRange, tag, start, end, requestedStart,
+            acceptedBytes, elapsedMs, firstWriteMs, cancelled, failed));
         Interlocked.Increment(ref _count);
         Trim();
     }
@@ -162,18 +175,32 @@ public sealed class MisioCacheHttpObservationStore
         return overlap;
     }
 
-    public object Snapshot(bool enabled)
+    public object Snapshot(bool enabled, bool bodyMeterEnabled = false)
     {
         Trim();
         var samples = _samples.ToArray();
-        var byMedia = new Dictionary<string, List<(long Start, long End)>>(StringComparer.Ordinal);
+        var declaredIntervals = new Dictionary<string, List<(long Start, long End)>>(StringComparer.Ordinal);
+        var meteredIntervals = new Dictionary<string, List<(long Start, long End)>>(StringComparer.Ordinal);
+        var lastStarts = new Dictionary<string, long>(StringComparer.Ordinal);
         var mediaLabels = new Dictionary<string, string>(StringComparer.Ordinal);
         var recent = new List<object>();
-        long declared = 0, repeated = 0;
-        int parsed = 0, overlappingResponses = 0;
-        int unavailable = 0;
+        long declared = 0, declaredRepeated = 0;
+        long metered = 0, meteredRepeated = 0, meteredAll = 0;
+        long forwardRepeated = 0, backwardRepeated = 0, maxJump = 0;
+        long summedElapsedMs = 0;
+        int parsed = 0, overlappingResponses = 0, meteredResponses = 0;
+        int incompleteResponses = 0, unavailable = 0, unknownBodyResponses = 0;
+        int cancelledResponses = 0, failedResponses = 0;
+        int forwardStarts = 0, backwardStarts = 0, sameStarts = 0;
+        var durations = new List<long>();
+        var firstByteTimes = new List<long>();
+
         foreach (var item in samples)
         {
+            if (item.Cancelled) cancelledResponses++;
+            if (item.Failed) failedResponses++;
+            if (item.AcceptedBytes.HasValue)
+                meteredAll = checked(meteredAll + item.AcceptedBytes.Value);
             if (item.Range && item.Status == 206 && item.ContentRange && item.Kind == "file" && !item.Start.HasValue)
                 unavailable++;
             if (!item.Start.HasValue || !item.End.HasValue || item.MediaTag.Length == 0) continue;
@@ -182,28 +209,76 @@ public sealed class MisioCacheHttpObservationStore
                 label = "M" + (mediaLabels.Count + 1).ToString(CultureInfo.InvariantCulture);
                 mediaLabels.Add(item.MediaTag, label);
             }
-            if (!byMedia.TryGetValue(item.MediaTag, out var intervals))
-                byMedia.Add(item.MediaTag, intervals = new List<(long Start, long End)>());
+            if (!declaredIntervals.TryGetValue(item.MediaTag, out var interval))
+                declaredIntervals.Add(item.MediaTag, interval = new List<(long Start, long End)>());
             var start = item.Start.Value;
             var end = item.End.Value;
             var size = checked(end - start + 1);
-            var overlap = OverlapAndInsert(intervals, start, end);
+            var declaredOverlap = OverlapAndInsert(interval, start, end);
             declared = checked(declared + size);
-            repeated = checked(repeated + overlap);
+            declaredRepeated = checked(declaredRepeated + declaredOverlap);
             parsed++;
-            if (overlap > 0) overlappingResponses++;
+            if (declaredOverlap > 0) overlappingResponses++;
+
+            string movement = "pierwszy";
+            long delta = 0;
+            if (lastStarts.TryGetValue(item.MediaTag, out var lastStart))
+            {
+                delta = start >= lastStart ? start - lastStart : lastStart - start;
+                if (delta > maxJump) maxJump = delta;
+                if (start > lastStart) { movement = "przód"; forwardStarts++; }
+                else if (start < lastStart) { movement = "tył"; backwardStarts++; }
+                else { movement = "ten sam"; sameStarts++; }
+            }
+            lastStarts[item.MediaTag] = start;
+
+            // A single HTTP 206 body maps a contiguous prefix of its
+            // Content-Range. Cap the submitted count at the declared interval.
+            // Missing instrumentation NEVER becomes an invented zero-byte body.
+            long? accepted = item.AcceptedBytes;
+            long? effective = accepted.HasValue ? Math.Min(size, Math.Max(0, accepted.Value)) : null;
+            long? actualOverlap = null;
+            if (effective.HasValue)
+            {
+                meteredResponses++;
+                if (effective.Value < size) incompleteResponses++;
+                if (effective.Value > 0)
+                {
+                    if (!meteredIntervals.TryGetValue(item.MediaTag, out var observed))
+                        meteredIntervals.Add(item.MediaTag, observed = new List<(long Start, long End)>());
+                    actualOverlap = OverlapAndInsert(observed, start, checked(start + effective.Value - 1));
+                    metered = checked(metered + effective.Value);
+                    meteredRepeated = checked(meteredRepeated + actualOverlap.Value);
+                    if (movement == "przód") forwardRepeated = checked(forwardRepeated + actualOverlap.Value);
+                    if (movement == "tył") backwardRepeated = checked(backwardRepeated + actualOverlap.Value);
+                }
+                else actualOverlap = 0;
+                if (item.ElapsedMs >= 0) { durations.Add(item.ElapsedMs); summedElapsedMs += item.ElapsedMs; }
+                if (item.FirstWriteMs.HasValue) firstByteTimes.Add(item.FirstWriteMs.Value);
+            }
+            else unknownBodyResponses++;
+
             recent.Add(new
             {
                 utc = item.At.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
                 media = label, requestedStart = item.RequestedStart,
-                start, end, declaredBytes = size, overlappingBytes = overlap,
-                newDeclaredBytes = size - overlap
+                start, end, declaredBytes = size, overlappingBytes = declaredOverlap,
+                newDeclaredBytes = size - declaredOverlap,
+                movement, moveDeltaBytes = delta,
+                acceptedBytes = accepted, meteredRangeBytes = effective,
+                meteredRepeatedBytes = actualOverlap,
+                durationMs = item.ElapsedMs, firstWriteMs = item.FirstWriteMs,
+                incomplete = effective.HasValue && effective.Value < size,
+                cancelled = item.Cancelled, failed = item.Failed
             });
         }
+        durations.Sort();
+        firstByteTimes.Sort();
         return new
         {
             enabled,
             pipelineInstalled = _pipelineInstalled,
+            bodyMeterEnabled,
             windowMinutes = 30,
             sampleLimit = MaxSamples,
             totalRequests = samples.Length,
@@ -220,12 +295,31 @@ public sealed class MisioCacheHttpObservationStore
             anonymousMediaCount = mediaLabels.Count,
             overlappingResponses,
             declaredPartialBytes = declared,
-            declaredUniqueBytes = declared - repeated,
-            declaredRepeatedBytes = repeated,
+            declaredUniqueBytes = declared - declaredRepeated,
+            declaredRepeatedBytes = declaredRepeated,
+            meteredResponses,
+            unknownBodyResponses,
+            incompleteResponses,
+            cancelledResponses,
+            failedResponses,
+            meteredAllBodyBytes = meteredAll,
+            meteredRangeBytes = metered,
+            meteredUniqueBytes = metered - meteredRepeated,
+            meteredRepeatedBytes = meteredRepeated,
+            meteredRepeatPercent = metered > 0 ? Math.Round(100d * meteredRepeated / metered, 1) : (double?)null,
+            forwardStarts,
+            backwardStarts,
+            sameStarts,
+            forwardRepeatedBytes = forwardRepeated,
+            backwardRepeatedBytes = backwardRepeated,
+            maxRangeStartJumpBytes = maxJump,
+            averageBodyMbps = summedElapsedMs > 0 ? Math.Round((double)metered * 8 / summedElapsedMs / 1000, 2) : (double?)null,
+            p95RequestMs = durations.Count > 0 ? durations[(int)Math.Ceiling(durations.Count * .95) - 1] : (long?)null,
+            p95FirstWriteMs = firstByteTimes.Count > 0 ? firstByteTimes[(int)Math.Ceiling(firstByteTimes.Count * .95) - 1] : (long?)null,
             recentRanges = recent.TakeLast(MaxRecent).ToArray(),
-            // This cannot be inferred from Content-Range without tracking the body stream.
+            // Legacy key kept for compatibility; it never represented actual transfer.
             measuredBytes = (long?)null,
-            note = "Długości z nagłówków Content-Range (nie fizyczny transfer!). Nakładający się zakres nie dowodzi, że klient pobrał go wcześniej w całości ani że nie ma cache. Historia zeruje się po restarcie, wyczyszczeniu i upływie 30 minut."
+            note = "Pomiar acceptedBytes oznacza bajty przekazane do interfejsu zapisu HTTP (nie gwarantuje dostarczenia do telefonu). Zakresy deklarowane pochodzą z Content-Range. Kierunek to zmiana startu zakresu, nie potwierdzony seek czasu. Brak pomiaru = nieznane, a nie 0. Historia RAM 30 min / 2048 próbek."
         };
     }
 

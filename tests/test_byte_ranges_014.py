@@ -43,8 +43,8 @@ class ByteRangeTelemetryTests(unittest.TestCase):
     def test_overlap_per_media_and_declared_not_actual_bytes(self):
         store=read(SRC/'Services/MisioCacheHttpObservationStore.cs')
         for token in ('Dictionary<string, List<(long Start, long End)>>','OverlapAndInsert',
-                      'declaredPartialBytes = declared','declaredUniqueBytes = declared - repeated',
-                      'declaredRepeatedBytes = repeated','overlappingResponses',
+                      'declaredPartialBytes = declared','declaredUniqueBytes = declared - declaredRepeated',
+                      'declaredRepeatedBytes = declaredRepeated','overlappingResponses',
                       'measuredBytes = (long?)null'):
             self.assertIn(token,store)
         html=read(SRC/'Web/configPage.html')
