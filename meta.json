@@ -5,7 +5,7 @@
   "overview": "Jellyfin 12.4 plugin foundation for future device-side video caching, preserving native player.",
   "owner": "kumblip",
   "category": "General",
-  "version": "0.1.1.0",
+  "version": "0.1.2.0",
   "targetAbi": "12.4.0.0",
   "status": "Active",
   "autoUpdate": false,
