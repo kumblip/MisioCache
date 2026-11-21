@@ -1,3 +1,7 @@
+# MisioCache v0.1.4.0 — niezależna diagnostyka Jellyfin
+
+Ta wersja dodaje wykrywanie nakładających się **deklarowanych** zakresów bajtów `Content-Range`. Nie zapisuje wideo i nie modyfikuje odtwarzacza. Szczegółowy plan testu i instalacji: `WDROZENIE_v0.1.4.0.md`.
+
 ## MisioCache v0.1.3.0 — obserwacja rzeczywistego ruchu (bez cache)
 
 Ten etap dodaje **weryfikowalny, pasywny** pomiar żądań HTTP Range / odpowiedzi 206

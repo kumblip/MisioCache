@@ -1,3 +1,9 @@
+# Kolejne kroki po diagnostyce v0.1.4.0
+
+**Wynik tego etapu:** identyfikujemy nakładanie zakresów bajtowych w odpowiedziach serwera, nie potwierdzamy lokalnej pamięci ani faktycznych bajtów przesłanych urządzeniu.
+
+**Dalszy plan:** zestawić wyniki testów cofania; przetestować scenariusz przerwanej odpowiedzi, osobne urządzenia i Direct Stream; sprawdzić, czy istnieje wspierany punkt integracji źródła danych z obecnym klientem. Dopiero potem przygotować eksperymentalny magazyn danych klienta, bez zastępowania obecnego odtwarzacza. Przy HTTP bez HTTPS nie należy zakładać możliwości zastosowania Service Worker.
+
 ## Stan po v0.1.3.0
 
 Etap 1 (instalowalna wtyczka, menu, aktualizacje) — wykonany.

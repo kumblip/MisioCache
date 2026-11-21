@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <!-- Compile the exact same production range engine, not a reimplementation. -->
+    <Compile Include="../../src/Jellyfin.Plugin.MisioCache/Services/MisioCacheHttpObservationStore.cs" Link="MisioCacheHttpObservationStore.cs" />
+  </ItemGroup>
+</Project>

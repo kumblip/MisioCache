@@ -42,9 +42,9 @@
   </section>
   <section class="mc-panel" id="mc-observation" aria-labelledby="mc-observation-heading">
    <h2 id="mc-observation-heading">Rzeczywiste odtwarzanie i żądania HTTP</h2>
-   <p class="mc-note">Nowość v0.1.3.0: pasywna diagnostyka serwera. Rozpoznaje aktualny tryb odtwarzania zgłaszany przez Jellyfin i — po włączeniu — zlicza wyłącznie żądania wideo HTTP, nagłówki Range oraz odpowiedzi 206. <strong>Nie pobiera filmu, nie zapisuje danych wideo i nie zmienia odtwarzacza.</strong></p>
+   <p class="mc-note">v0.1.4.0: pasywna diagnostyka serwera i porównywanie deklarowanych zakresów bajtów. Rozpoznaje aktualny tryb odtwarzania zgłaszany przez Jellyfin i — po włączeniu — zlicza wyłącznie żądania wideo HTTP, nagłówki Range oraz odpowiedzi 206. <strong>Nie pobiera filmu, nie zapisuje danych wideo i nie zmienia odtwarzacza.</strong></p>
    <label class="mc-field"><input type="checkbox" id="mc-http-optin"/> Włącz pasywną obserwację HTTP wideo (domyślnie wyłączona)</label>
-   <p class="mc-note">Po pierwszej instalacji wtyczki uruchom ponownie Jellyfin, aby aktywować pasywny obserwator w potoku HTTP. Nie zapisuje adresów, nazw, identyfikatorów, danych użytkowników ani treści żądań.</p>
+   <p class="mc-note">Po pierwszej instalacji wtyczki uruchom ponownie Jellyfin, aby aktywować pasywny obserwator w potoku HTTP. Nie zapisuje adresów, nazw, danych użytkowników ani treści żądań. Zakresy dla tego samego filmu łączy tylko anonimowy znacznik HMAC ważny do restartu serwera.</p>
    <dl class="mc-diagnostic-grid">
     <dt>Stan obserwatora</dt><dd id="mc-http-active">Nie sprawdzono</dd>
     <dt>Zakres pomiaru</dt><dd>Ostatnie 30 minut; maksymalnie 2048 zdarzeń, wyłącznie w pamięci RAM</dd>
@@ -54,9 +54,24 @@
     <dt>Potwierdzone Range + 206 + Content-Range</dt><dd id="mc-http-valid">—</dd>
     <dt>Range, na które serwer odpowiedział 200</dt><dd id="mc-http-ignored">—</dd>
     <dt>Odpowiedzi HTTP 416</dt><dd id="mc-http-416">—</dd>
+    <dt>Rozpoznane zakresy plików (GET + 206)</dt><dd id="mc-byte-parsed">—</dd>
+    <dt>Zakresy bez pełnych danych do porównania</dt><dd id="mc-byte-unparsed">—</dd>
+    <dt>Zaobserwowane materiały (anonimowe)</dt><dd id="mc-byte-media">—</dd>
+    <dt>Odpowiedzi z nakładającymi się zakresami</dt><dd id="mc-byte-overlap-count">—</dd>
+    <dt>Suma deklarowanych bajtów w 206</dt><dd id="mc-byte-total">—</dd>
+    <dt>Unikalne deklarowane bajty w badanym oknie</dt><dd id="mc-byte-unique">—</dd>
+    <dt>Deklarowane bajty żądane ponownie (częściowo lub całkowicie)</dt><dd id="mc-byte-repeated">—</dd>
     <dt>Pliki / playlisty / segmenty</dt><dd id="mc-http-types">—</dd>
     <dt>Bajty zapisane na urządzeniu</dt><dd>Nie da się ich zmierzyć pasywnie na NAS-ie</dd>
    </dl>
+   <h3>Ostatnie zakresy bajtowe (do 25)</h3>
+   <p class="mc-note"><strong>Do testu powtórzeń nie zeruj liczników pomiędzy pierwszym obejrzeniem a cofnięciem.</strong> Zresetowanie usuwa historię zakresów potrzebną do porównania. Materiały M1, M2… są anonimowe i mają znaczenie tylko w bieżącym zestawieniu.</p>
+   <div style="overflow-x:auto">
+    <table class="tbl" style="width:100%;min-width:550px" aria-label="Ostatnie zakresy bajtów">
+     <thead><tr><th>UTC</th><th>Materiał</th><th>Zakres odpowiedzi</th><th>Zadeklarowano</th><th>Nakładanie</th></tr></thead>
+     <tbody id="mc-byte-recent"><tr><td colspan="5">Brak danych do porównania</td></tr></tbody>
+    </table>
+   </div>
    <h3>Aktywne odtwarzanie (Jellyfin /Sessions)</h3>
    <ul class="mc-live-list" id="mc-live-sessions"><li>Nie sprawdzono</li></ul>
    <div class="mc-actions">
@@ -64,7 +79,7 @@
     <button type="button" class="emby-button" id="mc-http-reset">Wyzeruj liczniki</button>
    </div>
    <p id="mc-http-status" class="mc-status" role="status" aria-live="polite">Gotowe. Obserwacja wymaga świadomego włączenia.</p>
-   <p class="mc-note">Odpowiedź 206 potwierdza obsługę żądania częściowego, <strong>nie</strong> lokalny cache telefonu. Żadna z tych wartości nie jest pomiarem rzeczywiście przesłanych bajtów ani gwarancją Direct Play. Gdy klient nie raportuje PlayMethod, pokazujemy „Nieznany”.</p>
+   <p class="mc-note">Odpowiedź 206 potwierdza obsługę żądania częściowego, <strong>nie</strong> lokalny cache telefonu. Długość zakresu w nagłówku Content-Range nie jest pomiarem rzeczywiście przesłanych bajtów; powtórzony zakres nie dowodzi, że telefon wcześniej zapisał go w całości. Obserwator nie gwarantuje Direct Play. Gdy klient nie raportuje PlayMethod, pokazujemy „Nieznany”.</p>
   </section>
   <section class="mc-panel" aria-labelledby="mc-policy-heading">
    <h2 id="mc-policy-heading">Preferowana polityka przyszłego cache</h2>
@@ -168,10 +183,32 @@
    async function request(path,method='GET'){
     const t=typeof ApiClient?.accessToken==='function'?ApiClient.accessToken():ApiClient?.accessToken;
     if(!t)throw Error('Brak autoryzacji Jellyfin.');
-    const authorization='MediaBrowser Client="MisioCache", Device="Jellyfin Web", DeviceId="misiocache-diagnostics", Version="0.1.3.0", Token="'+String(t).replace(/["\r\n]/g,'')+'"';
+    const authorization='MediaBrowser Client="MisioCache", Device="Jellyfin Web", DeviceId="misiocache-diagnostics", Version="1.0.0", Token="'+String(t).replace(/["\r\n]/g,'')+'"';
     const response=await fetch(api(path),{method,cache:'no-store',headers:{Authorization:authorization}});
     if(!response.ok)throw Error('HTTP '+response.status+' dla '+path);
     return response.status===204?null:await response.json();
+   }
+   function formatByteCount(value){
+    const n=Number(value);
+    if(!Number.isSafeInteger(n)||n<0)return '—';
+    return new Intl.NumberFormat('pl-PL').format(n)+' B ('+(n/1048576).toFixed(2)+' MiB)';
+   }
+   function drawRanges(data){
+    const body=getId('mc-byte-recent');body.replaceChildren();
+    const list=get(data,'recentRanges','RecentRanges');
+    if(!Array.isArray(list)||!list.length){
+     const row=document.createElement('tr');const cell=document.createElement('td');cell.colSpan=5;cell.textContent='Brak rozpoznanych zakresów GET + 206 w oknie pomiaru';row.appendChild(cell);body.appendChild(row);return;
+    }
+    for(const sample of list.slice(-25).reverse()){
+     const tr=document.createElement('tr');
+     const v=(...keys)=>get(sample,...keys);
+     const start=v('start','Start'),end=v('end','End');
+     const cells=[String(v('utc','Utc')||'—'),String(v('media','Media')||'M?'),
+       String(start??'—')+'–'+String(end??'—'),formatByteCount(v('declaredBytes','DeclaredBytes')),
+       formatByteCount(v('overlappingBytes','OverlappingBytes'))];
+     for(const value of cells){const td=document.createElement('td');td.textContent=value;tr.appendChild(td);}
+     body.appendChild(tr);
+    }
    }
    function drawSessions(data){
     const list=getId('mc-live-sessions');list.replaceChildren();
@@ -209,6 +246,14 @@
      getId('mc-http-ignored').textContent=num('ignoredRange200','IgnoredRange200');
      getId('mc-http-416').textContent=num('unsatisfiableRanges416','UnsatisfiableRanges416');
      getId('mc-http-types').textContent=[num('fileRequests','FileRequests'),num('playlistRequests','PlaylistRequests'),num('segmentRequests','SegmentRequests')].join(' / ');
+     getId('mc-byte-parsed').textContent=num('parsedFileRanges','ParsedFileRanges');
+     getId('mc-byte-unparsed').textContent=num('unparsedFileRanges','UnparsedFileRanges');
+     getId('mc-byte-media').textContent=num('anonymousMediaCount','AnonymousMediaCount');
+     getId('mc-byte-overlap-count').textContent=num('overlappingResponses','OverlappingResponses');
+     getId('mc-byte-total').textContent=formatByteCount(get(d,'declaredPartialBytes','DeclaredPartialBytes'));
+     getId('mc-byte-unique').textContent=formatByteCount(get(d,'declaredUniqueBytes','DeclaredUniqueBytes'));
+     getId('mc-byte-repeated').textContent=formatByteCount(get(d,'declaredRepeatedBytes','DeclaredRepeatedBytes'));
+     drawRanges(d);
     }
     if(sessions.status==='fulfilled')drawSessions(sessions.value);
     else {getId('mc-live-sessions').replaceChildren(); const li=document.createElement('li');li.textContent='Nie udało się odczytać sesji: '+String(sessions.reason?.message||sessions.reason);getId('mc-live-sessions').appendChild(li);}
@@ -227,7 +272,7 @@
     finally{field.disabled=false;}
    }
    async function reset(){
-    try{await request('MisioCache/api/diagnostics/http/reset','POST');await refresh();status('Wyzerowano liczniki w pamięci (nie zmieniono odtwarzania).');}
+    try{await request('MisioCache/api/diagnostics/http/reset','POST');await refresh();status('Wyzerowano liczniki oraz historię zakresów. Dla wykrywania nakładania obejrzyj fragment, a potem cofnij bez ponownego zerowania.');}
     catch(error){status('Nie udało się wyzerować liczników: '+String(error.message||error));}
    }
    getId('mc-http-optin').addEventListener('change',toggle);

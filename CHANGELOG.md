@@ -1,3 +1,13 @@
+## v0.1.4.0 — analizator zakresów bajtowych GET/206 (kandydat)
+
+- Pasywny pomiar `Content-Range` dla Direct Play: deklarowane bajty, unikalne zakresy, nakładanie.
+- Separacja materiałów przez HMAC z losowym kluczem per start serwera (tylko RAM).
+- Ostatnie 25 zakresów z numerami bajtów w panelu administratora.
+- Bez przechwytywania treści i bez modyfikowania odtwarzacza; wartości nie są fizycznym pomiarem transferu.
+- Test produkcyjnego silnika C# uruchamiany na GitHub Actions przed kompilacją Release.
+- Zachowany system wymuszenia katalogu i automatycznego numerowania Release.
+- Poprawione testy, aby nie zakładały statycznej wersji ani nadpisanego manifestu.
+
 ## v0.1.3.0 — pasywna diagnostyka HTTP i sesji (kandydat)
 
 - Nowy, domyślnie wyłączony obserwator HTTP `IStartupFilter`.

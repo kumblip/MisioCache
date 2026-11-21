@@ -83,10 +83,10 @@ class PassiveDiagnosticsTests(unittest.TestCase):
 
     def test_version_is_labeled_and_assembly_synced(self):
         meta=json.loads(read(ROOT/'meta.json'))
-        self.assertEqual(meta['version'],'0.1.3.0')
+        self.assertRegex(meta['version'],r'^0\.1\.\d+\.0$')
         project=ET.fromstring(read(SRC/'Jellyfin.Plugin.MisioCache.csproj'))
-        self.assertEqual(project.findtext('./PropertyGroup/AssemblyVersion'),'0.1.3.0')
-        self.assertEqual(project.findtext('./PropertyGroup/FileVersion'),'0.1.3.0')
+        self.assertEqual(project.findtext('./PropertyGroup/AssemblyVersion'),meta['version'])
+        self.assertEqual(project.findtext('./PropertyGroup/FileVersion'),meta['version'])
 
     def test_auto_release_is_unfiltered_main(self):
         release=read(ROOT/'.github/workflows/release.yml')

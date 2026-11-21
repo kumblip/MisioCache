@@ -48,6 +48,9 @@ public sealed class MisioCachePassiveHttpStartupFilter : IStartupFilter
                 }
 
                 var requestedRange = context.Request.Headers.ContainsKey("Range");
+                // Only temporary numeric parsing of these headers; no raw header is kept.
+                var rawRequestedRange = requestedRange ? context.Request.Headers["Range"].ToString() : string.Empty;
+                var hasVideoId = TryExtractMediaId(path, out var mediaId);
                 try
                 {
                     await nextRequest().ConfigureAwait(false);
@@ -58,13 +61,35 @@ public sealed class MisioCachePassiveHttpStartupFilter : IStartupFilter
                     try
                     {
                         _store.Record(kind, requestedRange, context.Response.StatusCode,
-                            context.Response.Headers.ContainsKey("Content-Range"));
+                            context.Response.Headers.ContainsKey("Content-Range"),
+                            rawRequestedRange, context.Response.Headers["Content-Range"].ToString(),
+                            hasVideoId ? mediaId : Guid.Empty, HttpMethods.IsHead(method));
                     }
                     catch { /* diagnostics are intentionally best effort */ }
                 }
             });
             next(app);
         };
+    }
+
+    // Extract a GUID transiently ONLY for HMAC correlation. Never retain it, the
+    // full URL, query, title, user or access token in the observer's samples.
+    private static bool TryExtractMediaId(string path, out Guid mediaId)
+    {
+        mediaId = Guid.Empty;
+        var span = path.AsSpan();
+        while (!span.IsEmpty)
+        {
+            int slash = span.IndexOf('/');
+            if (slash < 0) return false;
+            span = span[(slash + 1)..];
+            if (!span.StartsWith("videos/", StringComparison.OrdinalIgnoreCase)) continue;
+            span = span[7..];
+            int end = span.IndexOf('/');
+            if (end < 0) return false;
+            return Guid.TryParse(span[..end], out mediaId);
+        }
+        return false;
     }
 
     // Match native Jellyfin Videos endpoints but not audio-only, image/API/other traffic.
