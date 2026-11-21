@@ -5,7 +5,7 @@
   "overview": "Jellyfin 12.4 diagnostic plugin with opt-in byte-range overlap metrics; native playback unchanged.",
   "owner": "kumblip",
   "category": "General",
-  "version": "0.1.5.0",
+  "version": "0.1.6.0",
   "targetAbi": "12.4.0.0",
   "status": "Active",
   "autoUpdate": false,
