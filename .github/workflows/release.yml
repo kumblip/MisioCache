@@ -1,0 +1,83 @@
+name: MisioCache — automatyczny Build i Release
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'meta.json'
+      - '.github/workflows/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: misiocache-publish-main
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz aktualny projekt i tagi
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Wyznacz następny numer (pierwszy 0.1.0.0)
+        run: |
+          git fetch --tags origin
+          python3 tools/next_release.py --write
+          python3 tools/sync_version.py
+      - name: Testy przed wydaniem
+        run: python3 tools/run_tests.py
+      - name: Kompilacja wtyczki .NET 10 / Jellyfin 12.4
+        run: dotnet publish src/Jellyfin.Plugin.MisioCache/Jellyfin.Plugin.MisioCache.csproj --configuration Release --output build/publish
+      - name: Spakuj wtyczkę i sprawdź zgodność DLL / metadanych
+        id: pack
+        run: python3 tools/package.py
+      - name: Bezpiecznik przed powtórzeniem tagu i Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pack.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Wydanie $TAG już istnieje — nie nadpisujemy opublikowanego pakietu." >&2
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG już istnieje — wydania są niezmienne." >&2
+            exit 1
+          fi
+      - name: Zapisz automatyczny numer wersji na main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add meta.json src/Jellyfin.Plugin.MisioCache/Jellyfin.Plugin.MisioCache.csproj
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: MisioCache ${{ steps.pack.outputs.version }} [skip ci]"
+            git push origin HEAD:main
+          fi
+      - name: Opublikuj Release GitHub (ZIP z DLL, MD5, SHA256)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pack.outputs.tag }}
+          VERSION: ${{ steps.pack.outputs.version }}
+          ZIP_FILE: ${{ steps.pack.outputs.archive }}
+        run: |
+          gh release create "$TAG" \
+            "$ZIP_FILE" "$ZIP_FILE.md5" "$ZIP_FILE.sha256" \
+            --target "$(git rev-parse HEAD)" \
+            --title "MisioCache $VERSION — Jellyfin 12.4" \
+            --notes "MisioCache $VERSION: oddzielna wtyczka z panelem konfiguracji i diagnostyką klienta. Wersja 0.1 NIE buforuje jeszcze wideo i NIE zmienia odtwarzacza Jellyfin."
+      - name: Uaktualnij katalog aktualizacji Jellyfin
+        env:
+          ZIP_FILE: ${{ steps.pack.outputs.archive }}
+        run: |
+          python3 tools/update_manifest.py --archive "$ZIP_FILE" --repo "$GITHUB_REPOSITORY"
+          python3 -m json.tool manifest.json >/dev/null
+          git add manifest.json
+          git commit -m "chore: Jellyfin manifest ${{ steps.pack.outputs.version }} [skip ci]"
+          git push origin HEAD:main
