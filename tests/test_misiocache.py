@@ -73,21 +73,36 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
         for invalid in ('v0.1.0.0','0.1.0','0.1.-1.0','0.1.0.0.0'):
             with self.assertRaises(ValueError):next_release.as_parts(invalid)
     def test_manifest_checksum_and_url(self):
-        with tempfile.TemporaryDirectory() as d:
-            td=Path(d)
-            meta=td/'meta.json';meta.write_text(json.dumps(self.meta),encoding='utf-8')
-            manifest=td/'manifest.json';manifest.write_text('[]',encoding='utf-8')
-            archive=td/f'MisioCache_{self.meta["version"]}_JF12.4.zip'
-            with zipfile.ZipFile(archive,'w') as z:
-                z.writestr('meta.json',json.dumps(self.meta))
-                z.writestr('Jellyfin.Plugin.MisioCache.dll',b'fake-dll-for-metadata-test')
-            entries=update_manifest.update(archive,meta,manifest,'kumblip/MisioCache',stamp='2026-11-21T00:00:00Z')
-            entry=entries[0]['versions'][0]
-            self.assertEqual(entry['checksum'],hashlib.md5(archive.read_bytes()).hexdigest())
-            self.assertIn('/releases/download/v0.1.0.0/',entry['sourceUrl'])
-            self.assertEqual(entry['targetAbi'],'12.4.0.0')
-            with self.assertRaises(ValueError):
-                update_manifest.update(archive,meta,manifest,'kumblip/MisioCache')
+        # Release CI increments meta.json before running tests.  No test should
+        # assume that only v0.1.0.0 exists once automatic releases are enabled.
+        versions = dict.fromkeys((self.meta['version'], '0.1.1.0', '0.1.2.0'))
+        for version in versions:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as d:
+                td = Path(d)
+                release_meta = {**self.meta, 'version': version}
+                meta = td / 'meta.json'
+                meta.write_text(json.dumps(release_meta), encoding='utf-8')
+                manifest = td / 'manifest.json'
+                manifest.write_text('[]', encoding='utf-8')
+                archive = td / f'MisioCache_{version}_JF12.4.zip'
+                with zipfile.ZipFile(archive, 'w') as z:
+                    z.writestr('meta.json', json.dumps(release_meta))
+                    z.writestr('Jellyfin.Plugin.MisioCache.dll', b'fake-dll-for-metadata-test')
+                entries = update_manifest.update(
+                    archive, meta, manifest, 'kumblip/MisioCache',
+                    stamp='2026-11-21T00:00:00Z'
+                )
+                entry = entries[0]['versions'][0]
+                expected_url = (
+                    'https://github.com/kumblip/MisioCache/releases/download/'
+                    f'v{version}/{archive.name}'
+                )
+                self.assertEqual(entry['version'], version)
+                self.assertEqual(entry['sourceUrl'], expected_url)
+                self.assertEqual(entry['checksum'], hashlib.md5(archive.read_bytes()).hexdigest())
+                self.assertEqual(entry['targetAbi'], '12.4.0.0')
+                with self.assertRaises(ValueError):
+                    update_manifest.update(archive, meta, manifest, 'kumblip/MisioCache')
     def test_manifest_unchanged_before_first_release(self):
         manifest=json.loads((ROOT/'manifest.json').read_text(encoding='utf-8'))
         self.assertIsInstance(manifest,list)
