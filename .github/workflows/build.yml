@@ -1,0 +1,31 @@
+name: MisioCache — testy i Build kontrolny
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Zweryfikuj wersję
+        run: python3 tools/sync_version.py
+      - name: Testy
+        run: python3 tools/run_tests.py
+      - name: Kompilacja .NET
+        run: dotnet publish src/Jellyfin.Plugin.MisioCache/Jellyfin.Plugin.MisioCache.csproj --configuration Release --output build/publish
+      - name: Spakuj instalacyjną DLL
+        id: pack
+        run: python3 tools/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MisioCache_${{ steps.pack.outputs.version }}_JF12.4
+          path: |
+            ${{ steps.pack.outputs.archive }}
+            ${{ steps.pack.outputs.archive }}.md5
+            ${{ steps.pack.outputs.archive }}.sha256
+          if-no-files-found: error
