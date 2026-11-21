@@ -41,3 +41,19 @@ Jeżeli oba liczniki rosną, serwer odebrał prośbę o obszar bajtowy, który p
 - Przełącznik obserwacji pozostaje wyłączony domyślnie; po wyłączeniu nie zbiera się nowych próbek.
 - 30 minut, maksymalnie 2048 zdarzeń w pamięci serwera; zerowanie niszczy kontekst porównania.
 - Kompilacja i test integracji z Jellyfin 12.4 wymagają GitHub Actions; lokalnie nie ma .NET SDK.
+
+## Niezmienne GitHub Actions
+
+W tej skorygowanej paczce v0.1.4.0 oba workflow `.github/workflows/build.yml`
+i `.github/workflows/release.yml` pozostają dokładnie takie jak w v0.1.3.0.
+Nie trzeba ich wgrywać ani edytować. Każdy nowy commit na `main` nadal
+uruchamia automatyczny Build / Release z automatyczną wersją.
+
+Nowe testy C# nie potrzebują dodatkowych kroków YAML: workflow już wykonują
+`python3 tools/run_tests.py`, a ten skrypt sam odkrywa projekty
+`tests/dotnet/**/*.csproj` i uruchamia je przez `dotnet run`.
+Brak SDK .NET w GitHub Actions jest błędem blokującym Release; lokalnie,
+gdy SDK nie jest dostępne, testy .NET są jawnie pomijane.
+
+**Wgrywanie:** wybierz paczkę TYLKO_ZMIANY_BEZ_WORKFLOW i prześlij zawarte
+pliki do repozytorium, nie edytuj plików `.github/workflows/` ani `manifest.json`.

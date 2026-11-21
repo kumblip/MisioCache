@@ -62,9 +62,14 @@ class ByteRangeTelemetryTests(unittest.TestCase):
         for token in ('declaredRepeatedBytes','anonymousMediaCount','full duplicate',
                       'HEAD ignored','bad ranges do not change overlap','reset removes history'):
             self.assertIn(token,checks)
+        # CI invokes run_tests.py in BOTH workflows already. C# test projects
+        # are automatically discovered there, without changing the workflows.
+        runner=read(ROOT/'tools/run_tests.py')
+        self.assertIn('rglob("*.csproj")', runner)
+        self.assertIn('subprocess.run(', runner)
+        self.assertIn('GITHUB_ACTIONS', runner)
         for action in ('build.yml','release.yml'):
-            self.assertIn('dotnet run --project tests/dotnet/MisioCache.RangeEngineTests.csproj',
-                          read(ROOT/'.github/workflows'/action))
+            self.assertIn('python3 tools/run_tests.py', read(ROOT/'.github/workflows'/action))
 
     @unittest.skipUnless(shutil.which('node'), 'Node.js nie jest dostępny')
     def test_panel_runtime_range_rows_and_repeated_bytes(self):
