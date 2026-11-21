@@ -1,3 +1,13 @@
+## v0.1.3.0 — pasywna diagnostyka HTTP i sesji (kandydat)
+
+- Nowy, domyślnie wyłączony obserwator HTTP `IStartupFilter`.
+- Zliczanie żądań wideo Range, 206 / 200 / 416, playlist i segmentów.
+- Status aktywnego odtwarzania z natywnego `/Sessions`.
+- Administrator: panel, włącz/wyłącz, odśwież i wyzeruj liczniki.
+- Ramka czasowa 30 minut / max 2048 próbek, wyłącznie RAM, bez danych identyfikujących.
+- Zachowano auto-Release na każdym commicie do main oraz ręczne odświeżanie katalogu.
+- Brak cache urządzenia i ingerencji w player, MisioFlix bez zmian.
+
 # MisioCache — kolejna aktualizacja po 0.1.0.0 (numer nadany automatycznie)
 
 - Aktywny panel aktualizacji jak w MisioFlix: lokalna/GitHub/manifest/katalog, wymuszanie katalogu oraz opcjonalna instalacja natywna przez Jellyfin.

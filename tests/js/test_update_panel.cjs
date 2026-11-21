@@ -8,7 +8,8 @@ const script=source.match(/<script>([\s\S]*?)<\/script>/)[1];
 const GUID='5cf36828-5b7b-4d18-a28e-1e87922e505b';
 const raw='https://raw.githubusercontent.com/kumblip/MisioCache/main/manifest.json';
 const pin='https://raw.githubusercontent.com/kumblip/MisioCache/'+'a'.repeat(40)+'/manifest.json';
-function element(id){return {id, textContent:'', value:'', checked:false, disabled:false, isConnected:true,
+function element(id){return {id, textContent:'', value:'', checked:false, disabled:false, isConnected:true,children:[],
+  replaceChildren(){this.children=[];this.textContent='';},appendChild(child){this.children.push(child);},
   listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},querySelector(selector){return nodes[selector.slice(1)];}};}
 let nodes;
 async function caseRun({withRepo,installed,remoteVersion}){
@@ -36,10 +37,12 @@ async function caseRun({withRepo,installed,remoteVersion}){
     if(p==='Packages')return result([{Guid:GUID,Name:'MisioCache',Versions:[{Version:packageVersion,TargetAbi:'12.4.0.0'}]}]);
     if(p==='Repositories')return result(repo?[{Name:'MisioCache',Url:repo,Enabled:true}]:[]);
     if(p==='Plugins')return result([{Id:GUID,Name:'MisioCache',Version:installed}]);
+    if(p==='Sessions')return result([]);
+    if(p==='MisioCache/api/diagnostics/http')return result({pipelineInstalled:true,enabled:false,totalRequests:0,rangeRequests:0,partialResponses206:0,validPartialRanges:0,ignoredRange200:0,unsatisfiableRanges416:0,fileRequests:0,playlistRequests:0,segmentRequests:0});
     if(p.startsWith('Packages/Installed/MisioCache')&&opts.method==='POST')return result({},204);
     throw Error('Unexpected request '+p);
   };
-  const context={document:{getElementById:id=>id==='misioCacheConfigPage'?view:null},
+  const context={document:{getElementById:id=>id==='misioCacheConfigPage'?view:null,createElement:tag=>element(tag)},
     window:{isSecureContext:false,setInterval:()=>1,clearInterval:()=>{},confirm:()=>true,ApiClient:null},
     ApiClient:{accessToken:()=> 'session-token',getUrl:p=>'/'+p,getPluginConfiguration:async()=>cfg,
       updatePluginConfiguration:async(_id,obj)=>{saved=obj;}},

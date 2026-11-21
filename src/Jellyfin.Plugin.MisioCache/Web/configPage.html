@@ -12,9 +12,13 @@
  #misioCacheConfigPage .mc-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
  #misioCacheConfigPage .mc-status{min-height:1.4em;white-space:pre-wrap;overflow-wrap:anywhere}
  #misioCacheConfigPage .mc-note{opacity:.85}
+ #misioCacheConfigPage .mc-diagnostic-grid{display:grid;grid-template-columns:minmax(175px,250px) minmax(0,1fr);gap:9px;margin:12px 0}
+ #misioCacheConfigPage .mc-diagnostic-grid dd{margin:0;overflow-wrap:anywhere}
+ #misioCacheConfigPage .mc-live-list{list-style:none;padding:0;margin:12px 0}
+ #misioCacheConfigPage .mc-live-list li{padding:9px 0;border-bottom:1px solid rgba(145,183,245,.25);overflow-wrap:anywhere}
  #misioCacheConfigPage .mc-updates-grid{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:9px;margin:12px 0}
  #misioCacheConfigPage .mc-updates-grid dd{overflow-wrap:anywhere;margin:0}
- @media(max-width:640px){#misioCacheConfigPage .mc-grid,#misioCacheConfigPage .mc-updates-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
+ @media(max-width:640px){#misioCacheConfigPage .mc-grid,#misioCacheConfigPage .mc-updates-grid,#misioCacheConfigPage .mc-diagnostic-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
  </style>
  <div data-role="content" class="mc-wrap">
   <h1>MisioCache — ustawienia i diagnostyka</h1>
@@ -35,6 +39,32 @@
    </dl>
    <div class="mc-actions"><button type="button" class="raised emby-button" id="mc-check">Sprawdź ponownie</button></div>
    <p id="mc-check-status" class="mc-status" role="status" aria-live="polite"></p>
+  </section>
+  <section class="mc-panel" id="mc-observation" aria-labelledby="mc-observation-heading">
+   <h2 id="mc-observation-heading">Rzeczywiste odtwarzanie i żądania HTTP</h2>
+   <p class="mc-note">Nowość v0.1.3.0: pasywna diagnostyka serwera. Rozpoznaje aktualny tryb odtwarzania zgłaszany przez Jellyfin i — po włączeniu — zlicza wyłącznie żądania wideo HTTP, nagłówki Range oraz odpowiedzi 206. <strong>Nie pobiera filmu, nie zapisuje danych wideo i nie zmienia odtwarzacza.</strong></p>
+   <label class="mc-field"><input type="checkbox" id="mc-http-optin"/> Włącz pasywną obserwację HTTP wideo (domyślnie wyłączona)</label>
+   <p class="mc-note">Po pierwszej instalacji wtyczki uruchom ponownie Jellyfin, aby aktywować pasywny obserwator w potoku HTTP. Nie zapisuje adresów, nazw, identyfikatorów, danych użytkowników ani treści żądań.</p>
+   <dl class="mc-diagnostic-grid">
+    <dt>Stan obserwatora</dt><dd id="mc-http-active">Nie sprawdzono</dd>
+    <dt>Zakres pomiaru</dt><dd>Ostatnie 30 minut; maksymalnie 2048 zdarzeń, wyłącznie w pamięci RAM</dd>
+    <dt>Wszystkie żądania mediów</dt><dd id="mc-http-total">—</dd>
+    <dt>Żądania z Range</dt><dd id="mc-http-range">—</dd>
+    <dt>Odpowiedzi HTTP 206</dt><dd id="mc-http-206">—</dd>
+    <dt>Potwierdzone Range + 206 + Content-Range</dt><dd id="mc-http-valid">—</dd>
+    <dt>Range, na które serwer odpowiedział 200</dt><dd id="mc-http-ignored">—</dd>
+    <dt>Odpowiedzi HTTP 416</dt><dd id="mc-http-416">—</dd>
+    <dt>Pliki / playlisty / segmenty</dt><dd id="mc-http-types">—</dd>
+    <dt>Bajty zapisane na urządzeniu</dt><dd>Nie da się ich zmierzyć pasywnie na NAS-ie</dd>
+   </dl>
+   <h3>Aktywne odtwarzanie (Jellyfin /Sessions)</h3>
+   <ul class="mc-live-list" id="mc-live-sessions"><li>Nie sprawdzono</li></ul>
+   <div class="mc-actions">
+    <button type="button" class="raised emby-button" id="mc-http-refresh">Sprawdź odtwarzanie i ruch</button>
+    <button type="button" class="emby-button" id="mc-http-reset">Wyzeruj liczniki</button>
+   </div>
+   <p id="mc-http-status" class="mc-status" role="status" aria-live="polite">Gotowe. Obserwacja wymaga świadomego włączenia.</p>
+   <p class="mc-note">Odpowiedź 206 potwierdza obsługę żądania częściowego, <strong>nie</strong> lokalny cache telefonu. Żadna z tych wartości nie jest pomiarem rzeczywiście przesłanych bajtów ani gwarancją Direct Play. Gdy klient nie raportuje PlayMethod, pokazujemy „Nieznany”.</p>
   </section>
   <section class="mc-panel" aria-labelledby="mc-policy-heading">
    <h2 id="mc-policy-heading">Preferowana polityka przyszłego cache</h2>
@@ -129,6 +159,82 @@
     el('mc-save-status').textContent='Zapisano planowaną politykę. Odtwarzanie i cache nadal nie są modyfikowane przez tę wersję.';
    }catch(err){el('mc-save-status').textContent='Nie udało się zapisać: '+String(err.message||err);}
   }
+  const traffic=(function(){
+   const root=view.querySelector('#mc-observation');
+   const getId=id=>root.querySelector('#'+id);
+   const get=(obj,...keys)=>{for(const k of keys){if(obj&&obj[k]!==undefined)return obj[k];}return undefined;};
+   const status=t=>getId('mc-http-status').textContent=t;
+   const api=path=>typeof ApiClient?.getUrl==='function'?ApiClient.getUrl(path):'/'+path;
+   async function request(path,method='GET'){
+    const t=typeof ApiClient?.accessToken==='function'?ApiClient.accessToken():ApiClient?.accessToken;
+    if(!t)throw Error('Brak autoryzacji Jellyfin.');
+    const authorization='MediaBrowser Client="MisioCache", Device="Jellyfin Web", DeviceId="misiocache-diagnostics", Version="0.1.3.0", Token="'+String(t).replace(/["\r\n]/g,'')+'"';
+    const response=await fetch(api(path),{method,cache:'no-store',headers:{Authorization:authorization}});
+    if(!response.ok)throw Error('HTTP '+response.status+' dla '+path);
+    return response.status===204?null:await response.json();
+   }
+   function drawSessions(data){
+    const list=getId('mc-live-sessions');list.replaceChildren();
+    const sessions=Array.isArray(data)?data:(get(data,'Items','items')||[]);
+    const playing=sessions.filter(s=>get(s,'NowPlayingItem','nowPlayingItem'));
+    if(!playing.length){const li=document.createElement('li');li.textContent='Brak aktywnych odtworzeń zgłoszonych przez Jellyfin.';list.appendChild(li);return;}
+    for(const s of playing.slice(0,25)){
+     const item=get(s,'NowPlayingItem','nowPlayingItem');
+     const state=get(s,'PlayState','playState')||{};
+     const raw=get(state,'PlayMethod','playMethod');
+     const method=typeof raw==='string'&&/^(DirectPlay|DirectStream|Transcode)$/.test(raw)?raw:'Nieznany';
+     const li=document.createElement('li');
+     const name=String(get(item,'Name','name')||'Materiał bez nazwy');
+     const client=String(get(s,'Client','client')||'Klient bez nazwy');
+     // textContent, never innerHTML: names may come from untrusted NFO.
+     li.textContent=name+' — '+client+' — '+method;
+     list.appendChild(li);
+    }
+    if(playing.length>25){const li=document.createElement('li');li.textContent='Pozostałe sesje pominięto w podglądzie.';list.appendChild(li);}
+   }
+   async function refresh(){
+    status('Odczytuję stan z serwera…');
+    const [http,sessions]=await Promise.allSettled([request('MisioCache/api/diagnostics/http'),request('Sessions')]);
+    if(http.status==='fulfilled'){
+     const d=http.value||{};
+     const num=(...names)=>String(get(d,...names)??0);
+     const installed=!!get(d,'pipelineInstalled','PipelineInstalled');
+     const enabled=!!get(d,'enabled','Enabled');
+     getId('mc-http-active').textContent=!installed?'Brak aktywnego obserwatora — uruchom ponownie Jellyfin':enabled?'Aktywna (tylko liczniki)':'Wyłączona';
+     getId('mc-http-optin').checked=enabled;
+     getId('mc-http-total').textContent=num('totalRequests','TotalRequests');
+     getId('mc-http-range').textContent=num('rangeRequests','RangeRequests');
+     getId('mc-http-206').textContent=num('partialResponses206','PartialResponses206');
+     getId('mc-http-valid').textContent=num('validPartialRanges','ValidPartialRanges');
+     getId('mc-http-ignored').textContent=num('ignoredRange200','IgnoredRange200');
+     getId('mc-http-416').textContent=num('unsatisfiableRanges416','UnsatisfiableRanges416');
+     getId('mc-http-types').textContent=[num('fileRequests','FileRequests'),num('playlistRequests','PlaylistRequests'),num('segmentRequests','SegmentRequests')].join(' / ');
+    }
+    if(sessions.status==='fulfilled')drawSessions(sessions.value);
+    else {getId('mc-live-sessions').replaceChildren(); const li=document.createElement('li');li.textContent='Nie udało się odczytać sesji: '+String(sessions.reason?.message||sessions.reason);getId('mc-live-sessions').appendChild(li);}
+    if(http.status==='rejected')status('Błąd obserwacji HTTP: '+String(http.reason?.message||http.reason));
+    else status(sessions.status==='fulfilled'?'Odczytano liczniki i aktywne sesje.':'Odczytano liczniki HTTP; sesje są niedostępne.');
+   }
+   async function toggle(){
+    const field=getId('mc-http-optin'); field.disabled=true;
+    try{
+     const current=await ApiClient.getPluginConfiguration(pluginId);
+     current.EnablePassiveHttpDiagnostics=field.checked;
+     await ApiClient.updatePluginConfiguration(pluginId,current);
+     status(field.checked?'Włączono pasywny pomiar; naciśnij „Sprawdź odtwarzanie i ruch”.':'Wyłączono zbieranie nowych próbek.');
+     await refresh();
+    }catch(error){field.checked=!field.checked;status('Nie udało się zapisać ustawienia: '+String(error.message||error));}
+    finally{field.disabled=false;}
+   }
+   async function reset(){
+    try{await request('MisioCache/api/diagnostics/http/reset','POST');await refresh();status('Wyzerowano liczniki w pamięci (nie zmieniono odtwarzania).');}
+    catch(error){status('Nie udało się wyzerować liczników: '+String(error.message||error));}
+   }
+   getId('mc-http-optin').addEventListener('change',toggle);
+   getId('mc-http-refresh').addEventListener('click',refresh);
+   getId('mc-http-reset').addEventListener('click',reset);
+   return {refresh};
+  })();
   const updates=(function(){
    const panel=view.querySelector('#mc-updates-panel');
    const refs={installed:panel.querySelector('#mc-update-installed'),
@@ -350,6 +456,7 @@
   })();
   if(view){
    updates.activate();
+   void traffic.refresh();
    view.querySelector('#mc-check').addEventListener('click',check);
    view.querySelector('#mc-policy-form').addEventListener('submit',save);
    view.addEventListener('pageshow',function(){check();read();});

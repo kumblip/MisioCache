@@ -1,3 +1,10 @@
+## Stan po v0.1.3.0
+
+Etap 1 (instalowalna wtyczka, menu, aktualizacje) — wykonany.
+Etap 2 (pasywna obserwacja HTTP i natywnych sesji) — kod gotowy do weryfikacji na NAS-ie.
+Etap 3 (kliencki cache Direct Play/Direct Stream bez zmiany odtwarzacza) — **niezaimplementowany**;
+uwarunkowany wynikami testów i dostępnymi punktami integracji w aplikacji mobilnej.
+
 # Plan MisioCache (oddzielony od MisioFlixa)
 
 ## Cel

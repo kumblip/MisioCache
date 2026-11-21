@@ -15,7 +15,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 
     public override Guid Id => PluginId;
     public override string Name => "MisioCache";
-    public override string Description => "Diagnostyka i plan bezpiecznego cache po stronie klienta. v0.1 nie ingeruje w odtwarzacz.";
+    public override string Description => "Diagnostyka klienta i pasywna analiza strumieni HTTP Range/206. Bez zmiany odtwarzacza.";
 
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
         : base(applicationPaths, xmlSerializer)

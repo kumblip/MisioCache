@@ -4,6 +4,7 @@ using Jellyfin.Plugin.MisioCache.Services;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Jellyfin.Plugin.MisioCache.Services;
 
@@ -18,6 +19,8 @@ public sealed class MisioCacheServiceRegistrator : IPluginServiceRegistrator
         }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddSingleton<MisioCacheUpdateService>();
         services.AddSingleton<MisioCacheNativeCatalogRefreshService>();
+        services.AddSingleton<MisioCacheHttpObservationStore>();
+        services.AddTransient<IStartupFilter, MisioCachePassiveHttpStartupFilter>();
         services.AddHostedService<MisioCacheUpdateService>(provider => provider.GetRequiredService<MisioCacheUpdateService>());
     }
 }

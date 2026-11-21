@@ -1,3 +1,39 @@
+## MisioCache v0.1.3.0 — obserwacja rzeczywistego ruchu (bez cache)
+
+Ten etap dodaje **weryfikowalny, pasywny** pomiar żądań HTTP Range / odpowiedzi 206
+oraz odczyt aktywnych sesji `/Sessions` z natywnego API Jellyfina.
+Przydatne także przy zwykłym HTTP. Nie wymaga Service Worker ani HTTPS.
+
+- **DOMYŚLNIE WYŁĄCZONY** licznik wideo HTTP można włączyć w panelu MisioCache.
+- Nie przechwytuje ani nie podmienia strumienia, nie czyta bajtów filmu i nie pobiera go w tle.
+- Zlicza tylko `GET`/`HEAD` tras `/Videos/<GUID>/...`, a nie zdjęcia, napisy ani logi.
+- 30-minutowe okno, najwyżej 2048 próbek w pamięci RAM; nie zapisuje do pliku.
+- Zachowuje tylko typ (plik, playlista, segment), informację o Range, status odpowiedzi
+  i obecność `Content-Range`. Nie zapisuje adresów URL, zapytań, tokenów, tytułów ani ID.
+- `HTTP 206` **nie dowodzi** istnienia cache po stronie urządzenia; zliczanie żądań
+  **nie jest** pomiarem faktycznie przesłanych bajtów.
+- Nazwa filmu i klient w podglądzie sesji są odczytywane na żądanie z natywnego `/Sessions`
+  tylko przez administratora; nie trafiają do magazynu próbek.
+- Nie wymienia odtwarzacza Jellyfin, nie modyfikuje MisioFlixa i jego integracji.
+
+Instalacja: prześlij paczkę zmian do istniejącego repo `kumblip/MisioCache`
+(z zachowaniem podfolderów). Nie podmieniaj istniejącego `manifest.json`.
+Wybierz `Commit changes` na `main` i sprawdź Actions i Release. Po instalacji/restartcie
+Jellyfina w panelu zobaczysz „Rzeczywiste odtwarzanie i żądania HTTP”. Włącz obserwację
+oraz odtwórz materiał na urządzeniu. Kliknij „Sprawdź odtwarzanie i ruch”.
+
+**Wersjonowanie:** źródła są oznaczone jako v0.1.3.0. Automatyczny workflow może wybrać
+nowszy numer, jeśli w repo istnieje już wydany tag v0.1.3.0 lub późniejszy.
+
+### Cel dalszej wersji
+
+Na podstawie diagnostyki sprawdzić Direct Play, Direct Stream i transkodowanie,
+wyznaczyć zgodną ścieżkę dla klienta i dopiero wtedy zdecydować o mechanizmie
+przechowywania i ponownego wykorzystania danych na urządzeniu. Żadnej ingerencji
+w istniejący odtwarzacz bez dowodu kompatybilności.
+
+---
+
 # MisioCache — osobna wtyczka Jellyfin 12.4
 
 **Wersja bazowa:** `0.1.0.0` — instalowalna baza diagnostyczna. Nie jest to jeszcze aktywny cache wideo.

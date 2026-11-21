@@ -70,8 +70,10 @@ class UpdateCatalogTests(unittest.TestCase):
 
     def test_has_no_direct_plugin_binary_update(self):
         for forbidden in ('File.WriteAllBytes','File.Copy','File.Move','File.Delete','ServiceWorker',
-                          'IStartupFilter','UseMiddleware','/web/index.html'):
+                          'UseMiddleware','/web/index.html'):
             self.assertNotIn(forbidden,self.svc)
             self.assertNotIn(forbidden,self.reg)
+        # Read-only startup observer is allowed; it never modifies responses.
+        self.assertIn('IStartupFilter, MisioCachePassiveHttpStartupFilter',self.reg)
 
 if __name__=='__main__':unittest.main()
