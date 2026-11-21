@@ -27,6 +27,8 @@ jobs:
           python3 tools/sync_version.py
       - name: Testy przed wydaniem
         run: python3 tools/run_tests.py
+      - name: Test produkcyjnego silnika zakresów (.NET 10)
+        run: dotnet run --project tests/dotnet/MisioCache.RangeEngineTests.csproj --configuration Release
       - name: Kompilacja wtyczki .NET 10 / Jellyfin 12.4
         run: dotnet publish src/Jellyfin.Plugin.MisioCache/Jellyfin.Plugin.MisioCache.csproj --configuration Release --output build/publish
       - name: Spakuj wtyczkę i sprawdź zgodność DLL / metadanych
@@ -65,7 +67,7 @@ jobs:
             "$ZIP_FILE" "$ZIP_FILE.md5" "$ZIP_FILE.sha256" \
             --target "$(git rev-parse HEAD)" \
             --title "MisioCache $VERSION — Jellyfin 12.4" \
-            --notes "MisioCache $VERSION: oddzielna wtyczka z panelem konfiguracji i diagnostyką klienta. Wersja 0.1 NIE buforuje jeszcze wideo i NIE zmienia odtwarzacza Jellyfin."
+            --notes "MisioCache $VERSION: pasywne zakresy bajtowe HTTP, rozpoznawanie powtórzeń, panel i diagnostyka sesji. Nie zapisuje wideo w cache i nie zmienia odtwarzacza Jellyfin."
       - name: Uaktualnij katalog aktualizacji Jellyfin
         env:
           ZIP_FILE: ${{ steps.pack.outputs.archive }}
