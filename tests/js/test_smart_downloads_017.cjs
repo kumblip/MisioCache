@@ -43,7 +43,7 @@ function createEnv(userId=userA,hasNative=true,epis=responseItems){
  }};
  const document={getElementById:id=>id==='misioCacheSmartPage'?view:null,createElement:()=>element()};
  const localStorage={getItem:k=>stored.has(k)?stored.get(k):null,setItem:(k,v)=>stored.set(k,v)};
- const context={window:{ApiClient:api,NativeShell},document,localStorage,location:{origin:'http://server'},console};
+ const context={window:{ApiClient:api,NativeShell,addEventListener(){}},document,localStorage,location:{origin:'http://server'},console};
  vm.runInNewContext(script,context,{filename:'overviewPage.html'});
  return {view,get,calls,stored,identity,async tick(){await new Promise(setImmediate);}};
 }

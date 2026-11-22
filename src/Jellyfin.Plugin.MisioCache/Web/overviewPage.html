@@ -33,10 +33,11 @@
 <p class="mc-muted">Wpisz dowolną dodatnią liczbę całkowitą odcinków oraz dodatni limit w GB (może być ułamkowy, np. 7,5 GB).</p>
 <p class="mc-muted">Uwaga: limit dotyczy <strong>sumy szacowanych rozmiarów nowo zlecanych plików</strong>. Oficjalny Android nie udostępnia wtyczce informacji o wszystkich wcześniejszych pobraniach ani o faktycznie wolnym miejscu — dlatego nie jest to globalny limit dysku telefonu. Przy nieznanym rozmiarze pobieranie zostanie wstrzymane.</p>
 <p id="mc-smart-settings-status" class="mc-message" role="status" aria-live="polite"></p>
+<p id="mc-smart-auto-status" class="mc-muted" role="status" aria-live="polite">Automatyczne pobieranie po ⋮ → Pobierz: brak informacji.</p>
 </section>
 <section class="mc-smart-box" aria-labelledby="mc-smart-download-heading" id="mc-smart-workflow" hidden>
 <h2 id="mc-smart-download-heading">Pobierz odcinek i następne</h2>
-<p class="mc-muted">Wyszukaj serial, wybierz bieżący odcinek i zleć pobranie do oficjalnego menedżera Androida. Nie musisz wybierać wszystkich odcinków ręcznie.</p>
+<p class="mc-muted">Po włączeniu funkcji zwykłe „⋮ → Pobierz” w oficjalnym Jellyfin Android próbuje automatycznie dołączyć kolejne odcinki. Możesz także wyszukać serial i zlecić paczkę ręcznie poniżej.</p>
 <div class="mc-search"><input class="emby-input" id="mc-smart-query" placeholder="Tytuł serialu / anime" aria-label="Wyszukaj serial"/><button type="button" class="raised emby-button" id="mc-smart-search">Szukaj</button></div>
 <label for="mc-smart-series">Serial</label><select class="emby-select mc-select" id="mc-smart-series"><option value="">Najpierw wyszukaj</option></select>
 <label for="mc-smart-episode">Bieżący odcinek</label><select class="emby-select mc-select" id="mc-smart-episode"><option value="">Najpierw wybierz serial</option></select>
@@ -47,7 +48,7 @@
 </section>
 <section class="mc-smart-box" aria-labelledby="mc-smart-scope-heading">
 <h2 id="mc-smart-scope-heading">Zakres tej wersji</h2>
-<p class="mc-muted">Dostępne: indywidualna zgoda, ustawienia i ręczne zlecenie paczki do natywnego Androida. <strong>Nieaktywne:</strong> automatyczne wykrywanie zakończenia lokalnego odcinka, kasowanie po obejrzeniu, automatyczne uzupełnianie kolejki oraz wybór lokalnej kopii po zwykłym kliknięciu „Odtwórz”. Oficjalna aplikacja nie udostępnia do tego wymaganych operacji przez NativeShell. Zawsze można otworzyć lokalny plik z sekcji „Pobrane”.</p>
+<p class="mc-muted">Dostępne: indywidualna zgoda, ustawienia, ręczne zlecenie paczki oraz próba automatycznego dołączenia kolejnych odcinków po standardowym „⋮ → Pobierz”. <strong>Nieaktywne:</strong> automatyczne wykrywanie zakończenia lokalnego odcinka, kasowanie po obejrzeniu, automatyczne uzupełnianie kolejki oraz wybór lokalnej kopii po zwykłym kliknięciu „Odtwórz”. Oficjalna aplikacja nie udostępnia do tego wymaganych operacji przez NativeShell. Zawsze można otworzyć lokalny plik z sekcji „Pobrane”.</p>
 </section>
 </div>
 <script>
@@ -79,6 +80,16 @@ let initialized=false;
 let nativeSupported=false;
 const guid=/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 const status=(id,message)=>{$(id).textContent=message;};
+function showAutoStatus(){
+ if(!preferenceKey)return;
+ try{
+  const entry=JSON.parse(localStorage.getItem('misio.cache.smart.last.v1:'+preferenceKey)||'null');
+  if(entry&&typeof entry.message==='string')status('mc-smart-auto-status','Ostatnia próba: '+entry.message);
+ }catch(_){}
+}
+window.addEventListener('misiocache-smart-downloads-status',e=>{
+ if(e.detail?.key===preferenceKey)showAutoStatus();
+});
 function nativeCanDownload(){
  const shell=window.NativeShell;
  return !!(shell&&typeof shell.downloadFiles==='function'&&typeof shell.openDownloadManager==='function'&&shell.AppHost&&typeof shell.AppHost.supports==='function'&&shell.AppHost.supports('filedownload'));
@@ -213,7 +224,8 @@ async function queueDownloads(includeCurrent){
  if(bytes>budgetGB*BYTES_IN_GB){status('mc-smart-download-status','Kolejka wymaga '+formatBytes(bytes)+', więcej niż wybrany limit. Niczego nie pobrano.');return;}
  try{
   const entries=items.map(item=>({itemId:String(item.Id)}));
-  const accepted=window.NativeShell.downloadFiles(entries);
+  const manual=window.MisioCacheSmartDownloads?.downloadManual;
+  const accepted=typeof manual==='function'?manual(entries):window.NativeShell.downloadFiles(entries);
   // NativeShell wrapper does not return a completion status; this is only a request to Android.
   if(accepted===false)throw Error('Android odmówił przyjęcia kolejki.');
   status('mc-smart-download-status','Zlecono Androidowi '+entries.length+' pobrania ('+formatBytes(bytes)+'). Otwórz „Pobrane”, aby sprawdzić postęp. Nie jest to potwierdzenie zakończenia.');
@@ -233,6 +245,7 @@ async function initialize(){
   // localStorage of the WebView is isolated on the current Android device; the key also isolates Jellyfin users.
   const server=typeof api.serverId==='function'?String(api.serverId()):location.origin;
   preferenceKey='misio.cache.smart.v1:'+server+':'+userId+':'+currentDeviceKey();
+  showAutoStatus();
   const prefs=getPreferences();
   $('mc-smart-enabled').checked=!!prefs.enabled&&nativeSupported;
   $('mc-smart-count').value=String(prefs.count);

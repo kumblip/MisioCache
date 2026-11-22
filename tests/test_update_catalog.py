@@ -73,7 +73,9 @@ class UpdateCatalogTests(unittest.TestCase):
                           'UseMiddleware','/web/index.html'):
             self.assertNotIn(forbidden,self.svc)
             self.assertNotIn(forbidden,self.reg)
-        # No more startup observer: only update services are registered.
-        self.assertNotIn('IStartupFilter',self.reg)
+        # HTML bootstrap is separate from media traffic and does not install
+        # binary updaters or revive the retired video telemetry middleware.
+        self.assertIn('MisioCacheSmartDownloadsStartupFilter',self.reg)
+        self.assertNotIn('MisioCachePassiveHttpStartupFilter',self.reg)
 
 if __name__=='__main__':unittest.main()

@@ -4,11 +4,13 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 SRC=ROOT/'src/Jellyfin.Plugin.MisioCache'
 class NoBackgroundTelemetryTests(unittest.TestCase):
-    def test_middleware_not_registered(self):
+    def test_video_telemetry_not_registered(self):
         r=(SRC/'Services/MisioCacheServiceRegistrator.cs').read_text(encoding='utf-8')
-        for name in ('IStartupFilter','MisioCachePassiveHttpStartupFilter','MisioCacheHttpObservationStore','MisioCacheResponseByteMeter'):
+        for name in ('MisioCachePassiveHttpStartupFilter','MisioCacheHttpObservationStore','MisioCacheResponseByteMeter'):
             self.assertNotIn(name,r)
         self.assertIn('MisioCacheUpdateService',r)
+        # A new index.html-only client bootstrap is allowed; video middleware is not.
+        self.assertIn('MisioCacheSmartDownloadsStartupFilter',r)
     def test_no_diagnostics_endpoint_or_instrumentation(self):
         files=('Controllers/MisioCacheDiagnosticsController.cs','Services/MisioCachePassiveHttpStartupFilter.cs',
                'Services/MisioCacheHttpObservationStore.cs','Services/MisioCacheResponseByteMeter.cs')
