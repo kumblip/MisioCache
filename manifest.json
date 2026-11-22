@@ -8,6 +8,14 @@
     "owner": "kumblip",
     "versions": [
       {
+        "version": "0.1.11.0",
+        "changelog": "MisioCache 0.1.11.0: panel ustawien i diagnostyki; bez modyfikowania odtwarzacza.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/kumblip/MisioCache/releases/download/v0.1.11.0/MisioCache_0.1.11.0_JF12.4.zip",
+        "checksum": "4ceed2bd5f3fe4f8b24d550843044746",
+        "timestamp": "2026-11-22T16:21:28Z"
+      },
+      {
         "version": "0.1.10.0",
         "changelog": "MisioCache 0.1.10.0: panel ustawien i diagnostyki; bez modyfikowania odtwarzacza.",
         "targetAbi": "12.4.0.0",
