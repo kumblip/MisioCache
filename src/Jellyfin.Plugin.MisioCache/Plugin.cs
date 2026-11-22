@@ -30,15 +30,15 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         {
             Name = "MisioCache",
             EmbeddedResourcePath = "Jellyfin.Plugin.MisioCache.Web.configPage.html",
-            DisplayName = "MisioCache — aktualizacje",
+            DisplayName = "MisioCache — ustawienia",
             MenuIcon = "settings",
             EnableInMainMenu = true
         };
         yield return new PluginPageInfo
         {
-            Name = "MisioCacheOverview",
-            EmbeddedResourcePath = "Jellyfin.Plugin.MisioCache.Web.overviewPage.html",
-            DisplayName = "MisioCache — pobieranie",
+            Name = "MisioCacheVersions",
+            EmbeddedResourcePath = "Jellyfin.Plugin.MisioCache.Web.versionsPage.html",
+            DisplayName = "MisioCache",
             MenuIcon = "storage",
             EnableInMainMenu = true
         };

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pl"><head><meta charset="utf-8"><title>MisioCache — aktualizacje</title></head><body>
+<html lang="pl"><head><meta charset="utf-8"><title>MisioCache — ustawienia</title></head><body>
 <div data-role="page" class="page type-interior pluginConfigurationPage" id="misioCacheConfigPage">
 <style>
 #misioCacheConfigPage .mc-wrap{max-width:940px;margin:0 auto;padding:16px 16px 48px}
@@ -8,20 +8,86 @@
 #misioCacheConfigPage .mc-updates-grid{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:9px;margin:12px 0}
 #misioCacheConfigPage .mc-updates-grid dd{overflow-wrap:anywhere;margin:0}
 @media(max-width:640px){#misioCacheConfigPage .mc-updates-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:13px}}
+
+#misioCacheConfigPage details.mc-panel>summary{cursor:pointer;font-weight:700;font-size:1.14rem;list-style:none;padding:4px 0}
+#misioCacheConfigPage details.mc-panel>summary::-webkit-details-marker{display:none}
+#misioCacheConfigPage details.mc-panel>summary:before{content:'▸';margin-right:10px}
+#misioCacheConfigPage details.mc-panel[open]>summary:before{content:'▾'}
+#misioCacheConfigPage details.mc-panel>summary + *{margin-top:14px}
+#misioCacheConfigPage .mc-devices-grid{display:grid;gap:12px}
+#misioCacheConfigPage .mc-device-row{padding:12px;border:1px solid rgba(145,183,245,.28);border-radius:9px}
+#misioCacheConfigPage .mc-device-row header{font-weight:650;overflow-wrap:anywhere}
+#misioCacheConfigPage .mc-device-fields{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+#misioCacheConfigPage .mc-device-fields label{display:flex;align-items:center;gap:6px}
+#misioCacheConfigPage .mc-device-fields input[type=number],#misioCacheConfigPage .mc-device-fields input[type=text]{width:88px;max-width:100%;padding:6px}
+#misioCacheConfigPage .mc-device-muted{opacity:.75;font-size:.85em;overflow-wrap:anywhere;margin:7px 0}
 </style>
 <div data-role="content" class="mc-wrap">
- <h1>MisioCache — aktualizacje</h1>
- <section class="mc-panel" aria-labelledby="mc-settings-scope">
-  <h2 id="mc-settings-scope">Smart Downloads na telefonie</h2>
-  <p>Funkcja jest domyślnie wyłączona. Każdy użytkownik włącza ją samodzielnie
-  w zakładce <strong>MisioCache</strong> na konkretnym telefonie z oficjalną aplikacją Jellyfin.</p>
-  <p>Każde konto i urządzenie ma własne ustawienia: liczbę następnych odcinków
-  (domyślnie 2) i dowolny dodatni limit paczki w GB.</p>
-  <p><small>Po włączeniu Smart Downloads na telefonie standardowe „⋮ → Pobierz” próbuje dołączyć kolejne odcinki przez natywny menedżer Androida.
-  Automatyczne kasowanie po obejrzeniu, uzupełnianie kolejki po obejrzeniu oraz uruchamianie
-  lokalnej kopii po zwykłym kliknięciu „Odtwórz” nie są jeszcze obsługiwane.
-  Limit dotyczy szacowanego rozmiaru zlecanej paczki, nie całej pamięci telefonu.</small></p>
- </section>
+ <h1>MisioCache — ustawienia</h1>
+
+<div id="misioCacheSmartPage" class="mc-smart-wrap">
+<style>
+#misioCacheSmartPage .mc-smart-wrap{max-width:940px;margin:0 auto;padding:20px 16px 65px}
+#misioCacheSmartPage .mc-smart-box{padding:18px 20px;margin:12px 0;border:1px solid rgba(145,183,245,.35);border-radius:12px;background:rgba(70,98,145,.09)}
+#misioCacheSmartPage h1{font-size:1.38rem;margin:0 0 8px}
+#misioCacheSmartPage h2{font-size:1.07rem;margin:0 0 10px}
+#misioCacheSmartPage .mc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+#misioCacheSmartPage .mc-row>label{flex:1}
+#misioCacheSmartPage .mc-row select{min-width:135px;max-width:50%;padding:8px}
+#misioCacheSmartPage .mc-row input.mc-num{width:150px;max-width:50%;padding:8px;box-sizing:border-box}
+#misioCacheSmartPage .mc-muted{opacity:.78;font-size:.87em;line-height:1.5}
+#misioCacheSmartPage .mc-button-row{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+#misioCacheSmartPage .mc-button-row button{padding:10px 13px}
+#misioCacheSmartPage .mc-search{display:flex;gap:8px;margin:10px 0}
+#misioCacheSmartPage .mc-search input{flex:1;min-width:0;padding:9px}
+#misioCacheSmartPage .mc-select{width:100%;padding:9px;margin:5px 0 10px;max-width:100%}
+#misioCacheSmartPage .mc-message{min-height:1.6em;white-space:pre-wrap;overflow-wrap:anywhere}
+#misioCacheSmartPage .mc-strong{font-weight:650}
+#misioCacheSmartPage [hidden]{display:none!important}
+@media(max-width:600px){#misioCacheSmartPage .mc-row{flex-wrap:wrap}#misioCacheSmartPage .mc-row select,#misioCacheSmartPage .mc-row input.mc-num{width:100%;min-width:100%;max-width:100%}#misioCacheSmartPage .mc-search{flex-wrap:wrap}#misioCacheSmartPage .mc-search button{flex:1}}
+</style>
+<details class="mc-panel" id="mc-smart-prefs-panel" open>
+<summary>Smart Downloads — ustawienia bieżącego urządzenia</summary>
+<p class="mc-muted">Ustawienia konta i urządzenia są zapisywane przez MisioCache na serwerze. Na telefonie są też lokalnie buforowane; nowe urządzenia są domyślnie wyłączone.</p>
+<section class="mc-smart-box" aria-labelledby="mc-smart-prefs-heading">
+<h2 id="mc-smart-prefs-heading">Moje ustawienia pobierania</h2>
+<p id="mc-smart-user" class="mc-muted">Sprawdzanie konta i aplikacji…</p>
+<div class="mc-row"><label for="mc-smart-enabled" class="mc-strong">Chcę korzystać ze Smart Downloads</label><input type="checkbox" id="mc-smart-enabled" disabled/></div>
+<div class="mc-row"><label for="mc-smart-count">Liczba kolejnych odcinków (domyślnie 2)</label><input class="emby-input mc-num" type="number" id="mc-smart-count" min="1" step="1" inputmode="numeric" value="2" disabled/></div>
+<div class="mc-row"><label for="mc-smart-budget">Limit pojedynczej kolejki (GB)</label><input class="emby-input mc-num" type="text" id="mc-smart-budget" inputmode="decimal" placeholder="np. 7,5" value="5" disabled/></div>
+<p class="mc-muted">Wpisz dowolną dodatnią liczbę całkowitą odcinków oraz dodatni limit w GB (może być ułamkowy, np. 7,5 GB).</p>
+<p class="mc-muted">Uwaga: limit dotyczy <strong>sumy szacowanych rozmiarów nowo zlecanych plików</strong>. Oficjalny Android nie udostępnia wtyczce informacji o wszystkich wcześniejszych pobraniach ani o faktycznie wolnym miejscu — dlatego nie jest to globalny limit dysku telefonu. Przy nieznanym rozmiarze pobieranie zostanie wstrzymane.</p>
+<p id="mc-smart-settings-status" class="mc-message" role="status" aria-live="polite"></p>
+<p id="mc-smart-auto-status" class="mc-muted" role="status" aria-live="polite">Automatyczne pobieranie po ⋮ → Pobierz: brak informacji.</p>
+</section>
+</details>
+<details class="mc-panel" id="mc-smart-devices-panel">
+<summary>Urządzenia — stan Smart Downloads i ustawienia</summary>
+<p class="mc-devices-note mc-muted">Pojawią się urządzenia, które po aktualizacji połączyły się z MisioCache. Nie oznacza to pełnego wykazu wszystkich urządzeń Jellyfin. Wpis „Moduł aktywny” potwierdza połączenie skryptu, nie ukończenie pobrania.</p>
+<div class="mc-button-row"><button class="emby-button" type="button" id="mc-devices-refresh">Odśwież urządzenia</button></div>
+<p id="mc-devices-state" class="mc-message" role="status">Odczytywanie…</p>
+<div id="mc-devices-list" class="mc-devices-grid"></div>
+</details>
+<details class="mc-panel" id="mc-smart-download-panel">
+<summary>Pobieranie — wybór odcinków i ostatnia próba</summary>
+<section class="mc-smart-box" aria-labelledby="mc-smart-download-heading" id="mc-smart-workflow" hidden>
+<h2 id="mc-smart-download-heading">Pobierz odcinek i następne</h2>
+<p class="mc-muted">Po włączeniu funkcji zwykłe „⋮ → Pobierz” w oficjalnym Jellyfin Android próbuje automatycznie dołączyć kolejne odcinki. Możesz także wyszukać serial i zlecić paczkę ręcznie poniżej.</p>
+<div class="mc-search"><input class="emby-input" id="mc-smart-query" placeholder="Tytuł serialu / anime" aria-label="Wyszukaj serial"/><button type="button" class="raised emby-button" id="mc-smart-search">Szukaj</button></div>
+<label for="mc-smart-series">Serial</label><select class="emby-select mc-select" id="mc-smart-series"><option value="">Najpierw wyszukaj</option></select>
+<label for="mc-smart-episode">Bieżący odcinek</label><select class="emby-select mc-select" id="mc-smart-episode"><option value="">Najpierw wybierz serial</option></select>
+<p id="mc-smart-estimate" class="mc-muted">Wybierz odcinek, aby zobaczyć rozmiar kolejki.</p>
+<div class="mc-button-row"><button type="button" class="raised emby-button" id="mc-smart-batch">Pobierz wybrany + kolejne</button><button type="button" class="emby-button" id="mc-smart-next">Pobierz tylko następne</button><button type="button" class="emby-button" id="mc-smart-open">Otwórz Pobrane</button></div>
+<p id="mc-smart-download-status" class="mc-message" role="status" aria-live="polite"></p>
+<p class="mc-muted">Jeśli bieżący odcinek masz już pobrany, wybierz „Pobierz tylko następne”. Aplikacja Android zarządza zapisem i ukończeniem pobierania.</p>
+</section><section class="mc-smart-box" aria-labelledby="mc-smart-scope-heading">
+<h2 id="mc-smart-scope-heading">Zakres tej wersji</h2>
+<p class="mc-muted">Dostępne: indywidualna zgoda, ustawienia, ręczne zlecenie paczki oraz próba automatycznego dołączenia kolejnych odcinków po standardowym „⋮ → Pobierz”. <strong>Nieaktywne:</strong> automatyczne wykrywanie zakończenia lokalnego odcinka, kasowanie po obejrzeniu, automatyczne uzupełnianie kolejki oraz wybór lokalnej kopii po zwykłym kliknięciu „Odtwórz”. Oficjalna aplikacja nie udostępnia do tego wymaganych operacji przez NativeShell. Zawsze można otworzyć lokalny plik z sekcji „Pobrane”.</p>
+</section>
+</details>
+</div>
+
+  <details class="mc-panel" id="mc-settings-updates-panel" open><summary>Aktualizacje MisioCache</summary>
   <section class="mc-panel" aria-label="Aktualizacje MisioCache">
   <section id="mc-updates-panel" aria-labelledby="mc-updates-heading" style="padding:12px 0 22px">
    <h2 id="mc-updates-heading">Aktualizacje MisioCache</h2>
@@ -45,6 +111,7 @@
    <p><small>Instalacja odbywa się wyłącznie przez natywny menedżer Jellyfina, z repozytorium MisioCache. Nie jest możliwa, dopóki odpowiednia zgodna wersja nie pojawi się w jego katalogu. Po instalacji może być wymagany restart serwera.</small></p>
   </section>
   </section>
+  </details>
 </div>
 <script>
 (function(){
@@ -276,4 +343,285 @@
 })();
 </script>
 </div>
+<script>
+(function(){
+'use strict';
+const view=document.getElementById('misioCacheSmartPage');
+if(!view||view.dataset.smartDownloadsInitialized==='1')return;
+view.dataset.smartDownloadsInitialized='1';
+const $=id=>view.querySelector('#'+id);
+const preferenceDefaults=Object.freeze({enabled:false,count:2,budgetGB:5});
+const BYTES_IN_GB=1000000000;
+function parseCount(value){
+ const raw=String(value??'').trim();
+ if(!/^[1-9]\d*$/.test(raw))return null;
+ const n=Number(raw);
+ return Number.isSafeInteger(n)?n:null;
+}
+function parseBudgetGB(value){
+ const raw=String(value??'').trim().replace(',', '.');
+ if(!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw))return null;
+ const n=Number(raw);
+ return Number.isFinite(n)&&n>0&&Number.isSafeInteger(Math.ceil(n*BYTES_IN_GB))?n:null;
+}
+let preferenceKey=null;
+let userId=null;
+let seriesItems=[];
+let episodeItems=[];
+let initialized=false;
+let nativeSupported=false;
+const guid=/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+const status=(id,message)=>{$(id).textContent=message;};
+function showAutoStatus(){
+ if(!preferenceKey)return;
+ try{
+  const entry=JSON.parse(localStorage.getItem('misio.cache.smart.last.v1:'+preferenceKey)||'null');
+  if(entry&&typeof entry.message==='string')status('mc-smart-auto-status','Ostatnia próba: '+entry.message);
+ }catch(_){}
+}
+window.addEventListener('misiocache-smart-downloads-status',e=>{
+ if(e.detail?.key===preferenceKey)showAutoStatus();
+});
+function nativeCanDownload(){
+ const shell=window.NativeShell;
+ return !!(shell&&typeof shell.downloadFiles==='function'&&typeof shell.openDownloadManager==='function'&&shell.AppHost&&typeof shell.AppHost.supports==='function'&&shell.AppHost.supports('filedownload'));
+}
+function currentApi(){return window.ApiClient||null;}
+async function getPreferences(){
+ const bridge=window.MisioCacheSmartDownloads;
+ if(typeof bridge?.getSettings!=='function')throw Error('Moduł MisioCache nie jest załadowany. Sprawdź restart Jellyfina.');
+ return await bridge.getSettings();
+}
+async function savePreferences(){
+ if(!preferenceKey || !initialized)return;
+ const enabled=$('mc-smart-enabled').checked;
+ const count=parseCount($('mc-smart-count').value);
+ const budgetGB=parseBudgetGB($('mc-smart-budget').value);
+ if(count===null||budgetGB===null){
+  status('mc-smart-settings-status','Nie zapisano: liczba odcinków i limit GB muszą być dodatnie.');return;
+ }
+ try{
+  const saved=await window.MisioCacheSmartDownloads.saveSettings({enabled,count,budgetGB});
+  $('mc-smart-enabled').checked=!!saved.enabled;
+  status('mc-smart-settings-status',saved.enabled?'Zapisano na serwerze: włączone dla tego telefonu.':'Zapisano na serwerze: wyłączone dla tego telefonu.');
+ }catch(e){
+  status('mc-smart-settings-status','Nie zapisano na serwerze: '+String(e.message||e));
+  try{const current=await getPreferences();$('mc-smart-enabled').checked=current.enabled&&nativeSupported;}catch(_) {$('mc-smart-enabled').checked=false;}
+ }
+ syncControls();
+}
+function syncControls(){
+ const enabled=initialized&&nativeSupported&&!!$('mc-smart-enabled').checked;
+ $('mc-smart-count').disabled=!enabled;
+ $('mc-smart-budget').disabled=!enabled;
+ $('mc-smart-workflow').hidden=!enabled;
+}
+function currentDeviceKey(){
+ try{const s=window.NativeShell;return s.AppHost&&typeof s.AppHost.deviceId==='function'?String(s.AppHost.deviceId()):'android-device';}
+ catch(_){return 'android-device';}
+}
+function orderEpisodes(items){
+ return [...items].filter(x=>x&&x.Type==='Episode'&&guid.test(String(x.Id||''))&&x.LocationType!=='Virtual'&&!x.IsMissing).sort((a,b)=>{
+  const seasonA=Number.isInteger(Number(a.ParentIndexNumber))?Number(a.ParentIndexNumber):99999;
+  const seasonB=Number.isInteger(Number(b.ParentIndexNumber))?Number(b.ParentIndexNumber):99999;
+  const episodeA=Number.isInteger(Number(a.IndexNumber))?Number(a.IndexNumber):99999;
+  const episodeB=Number.isInteger(Number(b.IndexNumber))?Number(b.IndexNumber):99999;
+  return seasonA-seasonB||episodeA-episodeB||String(a.SortName||a.Name||'').localeCompare(String(b.SortName||b.Name||''),'pl');
+ });
+}
+function batchFor(episodes,selectedId,count,includeCurrent){
+ const index=episodes.findIndex(e=>String(e.Id)===String(selectedId));
+ if(index<0||count===null)return [];
+ return episodes.slice(index+(includeCurrent?0:1),Math.min(episodes.length,index+1+count));
+}
+function fileBytes(item){
+ const sources=Array.isArray(item.MediaSources)?item.MediaSources:[];
+ const sizes=sources.map(s=>Number(s.Size)).filter(s=>Number.isSafeInteger(s)&&s>0);
+ const size=sizes.length?Math.max(...sizes):Number(item.Size);
+ return Number.isSafeInteger(size)&&size>0?size:null;
+}
+function batchBytes(items){
+ const sizes=items.map(fileBytes);
+ return sizes.some(s=>s===null)?null:sizes.reduce((a,b)=>a+b,0);
+}
+function formatBytes(bytes){return bytes===null?'Rozmiar nieznany':(bytes/BYTES_IN_GB).toFixed(2)+' GB';}
+function populateSelect(select,items,label){
+ select.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent=label;select.appendChild(empty);
+ for(const item of items){const option=document.createElement('option');option.value=String(item.Id);option.textContent=item.DisplayName||item.Name||item.Id;select.appendChild(option);}
+}
+async function jellyfinGetItems(params){
+ const api=currentApi();
+ if(!api||!userId)throw Error('Zaloguj się w Jellyfinie.');
+ if(typeof api.getItems==='function')return await api.getItems(userId,params);
+ if(typeof api.getJSON==='function'&&typeof api.getUrl==='function')return await api.getJSON(api.getUrl('Users/'+encodeURIComponent(userId)+'/Items',params));
+ throw Error('Nieobsługiwana wersja API Jellyfin.');
+}
+async function searchSeries(){
+ if(!initialized||!$('mc-smart-enabled').checked)return;
+ const query=$('mc-smart-query').value.trim();
+ if(query.length<2){status('mc-smart-download-status','Wpisz przynajmniej 2 znaki tytułu.');return;}
+ status('mc-smart-download-status','Wyszukiwanie…');
+ $('mc-smart-search').disabled=true;
+ try{
+  const response=await jellyfinGetItems({Recursive:true,IncludeItemTypes:'Series',SearchTerm:query,Limit:35});
+  seriesItems=(response.Items||[]).filter(s=>s.Type==='Series'&&guid.test(String(s.Id||'')));
+  populateSelect($('mc-smart-series'),seriesItems,seriesItems.length?'Wybierz serial':'Nie znaleziono serialu');
+  episodeItems=[];populateSelect($('mc-smart-episode'),[],'Wybierz serial');
+  status('mc-smart-download-status',seriesItems.length?'Wybierz serial, a następnie odcinek.':'Brak wyników.');
+ }catch(e){status('mc-smart-download-status','Błąd wyszukiwania: '+String(e.message||e));}
+ finally{$('mc-smart-search').disabled=false;}
+}
+async function loadEpisodes(){
+ const parent=$('mc-smart-series').value;
+ episodeItems=[];populateSelect($('mc-smart-episode'),[],'Ładowanie…');
+ if(!guid.test(parent))return;
+ status('mc-smart-download-status','Pobieranie listy odcinków…');
+ try{
+  const response=await jellyfinGetItems({ParentId:parent,Recursive:true,IncludeItemTypes:'Episode',Fields:'MediaSources',Limit:10000});
+  episodeItems=orderEpisodes(response.Items||[]);
+  populateSelect($('mc-smart-episode'),episodeItems,episodeItems.length?'Wybierz odcinek':'Brak odcinków');
+  status('mc-smart-download-status',episodeItems.length?'Wybierz odcinek.':'Brak odcinków nadających się do pobrania.');
+ }catch(e){status('mc-smart-download-status','Nie udało się pobrać odcinków: '+String(e.message||e));}
+ updateEstimate();
+}
+function updateEstimate(){
+ const selected=$('mc-smart-episode').value;
+ const count=parseCount($('mc-smart-count').value);
+ if(count===null){status('mc-smart-estimate','Podaj dodatnią całkowitą liczbę następnych odcinków.');return;}
+ const items=batchFor(episodeItems,selected,count,true);
+ const bytes=batchBytes(items);
+ status('mc-smart-estimate',items.length?'Wybrany i następne: '+items.length+' · '+formatBytes(bytes)+'. Osobno: '+formatBytes(batchBytes(batchFor(episodeItems,selected,count,false))):'Wybierz odcinek, aby zobaczyć rozmiar kolejki.');
+}
+async function queueDownloads(includeCurrent){
+ try{
+  const account=await currentApi()?.getCurrentUser?.();
+  if(!account||String(account.Id)!==userId){
+   $('mc-smart-enabled').checked=false;initialized=false;preferenceKey=null;userId=null;
+   syncControls();status('mc-smart-download-status','Zmieniono użytkownika Jellyfin. Odśwież stronę i włącz opcję dla własnego konta.');return;
+  }
+ }catch(_){status('mc-smart-download-status','Nie można potwierdzić aktualnego konta. Niczego nie pobrano.');return;}
+ if(!nativeCanDownload()||!initialized||!$('mc-smart-enabled').checked){status('mc-smart-download-status','Smart Downloads jest wyłączony albo brak natywnego Androida.');return;}
+ try{const s=await getPreferences();if(!s.enabled){status('mc-smart-download-status','Serwer: pobieranie wyłączone.');return;}}
+ catch(e){status('mc-smart-download-status','Brak potwierdzenia ustawień na serwerze: '+e.message);return;}
+ const count=parseCount($('mc-smart-count').value);
+ const budgetGB=parseBudgetGB($('mc-smart-budget').value);
+ if(count===null||budgetGB===null){status('mc-smart-download-status','Błędne ustawienia: wpisz dodatnią całkowitą liczbę odcinków i dodatni limit GB. Niczego nie pobrano.');return;}
+ const items=batchFor(episodeItems,$('mc-smart-episode').value,count,includeCurrent);
+ if(items.length===0){status('mc-smart-download-status','Brak odcinków w kolejce.');return;}
+ const bytes=batchBytes(items);
+ if(bytes===null){status('mc-smart-download-status','Nie znamy rozmiaru wszystkich plików. Dla ochrony miejsca pobieranie nie zostało uruchomione.');return;}
+ if(bytes>budgetGB*BYTES_IN_GB){status('mc-smart-download-status','Kolejka wymaga '+formatBytes(bytes)+', więcej niż wybrany limit. Niczego nie pobrano.');return;}
+ try{
+  const entries=items.map(item=>({itemId:String(item.Id)}));
+  const manual=window.MisioCacheSmartDownloads?.downloadManual;
+  const accepted=typeof manual==='function'?manual(entries):window.NativeShell.downloadFiles(entries);
+  // NativeShell wrapper does not return a completion status; this is only a request to Android.
+  if(accepted===false)throw Error('Android odmówił przyjęcia kolejki.');
+  const message='Zlecono Androidowi '+entries.length+' pobrania ('+formatBytes(bytes)+'). Otwórz „Pobrane”, aby sprawdzić postęp. Nie jest to potwierdzenie zakończenia.';
+  status('mc-smart-download-status',message);
+  void window.MisioCacheSmartDownloads?.reportStatus?.(message);
+ }catch(e){status('mc-smart-download-status','Nie udało się zlecić pobierania: '+String(e.message||e));}
+}
+async function initialize(){
+ if(initialized)return;
+ const api=currentApi();
+ if(!api||typeof api.getCurrentUser!=='function'){
+  status('mc-smart-user','Brak aktywnej sesji Jellyfin — opcja pozostaje wyłączona.');return;
+ }
+ try{
+  const current=await api.getCurrentUser();
+  if(!current||!guid.test(String(current.Id||'')))throw Error('Nie można ustalić konta.');
+  userId=String(current.Id);
+  nativeSupported=nativeCanDownload();
+  // localStorage of the WebView is isolated on the current Android device; the key also isolates Jellyfin users.
+  const server=typeof api.serverId==='function'?String(api.serverId()):location.origin;
+  preferenceKey='misio.cache.smart.v1:'+server+':'+userId+':'+currentDeviceKey();
+  showAutoStatus();
+  const prefs=await getPreferences();
+  if(prefs.lastAction)status('mc-smart-auto-status','Ostatnia próba na tym urządzeniu: '+prefs.lastAction);
+  $('mc-smart-enabled').checked=!!prefs.enabled&&nativeSupported;
+  $('mc-smart-count').value=String(prefs.count);
+  $('mc-smart-budget').value=String(prefs.budgetGB);
+  $('mc-smart-enabled').disabled=!nativeSupported;
+  initialized=true;
+  status('mc-smart-user','Konto: '+String(current.Name||'Jellyfin')+' · '+(nativeSupported?'Oficjalna aplikacja Android wykryta.':'Brak natywnego menedżera pobierania Androida.'));
+  status('mc-smart-settings-status',nativeSupported?(prefs.enabled?'Włączone na tym urządzeniu.':'Wyłączone — włącz tylko jeśli chcesz zapisywać odcinki na telefonie.'):'Na tym urządzeniu nie można włączyć automatycznej kolejki.');
+  syncControls();
+ }catch(e){status('mc-smart-user','Nie można włączyć funkcji: '+String(e.message||e));}
+}
+$('mc-smart-enabled').addEventListener('change',()=>{void savePreferences();});
+$('mc-smart-count').addEventListener('change',()=>{void savePreferences();updateEstimate();});
+$('mc-smart-budget').addEventListener('change',()=>{void savePreferences();updateEstimate();});
+$('mc-smart-search').addEventListener('click',searchSeries);
+$('mc-smart-query').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchSeries();}});
+$('mc-smart-series').addEventListener('change',loadEpisodes);
+$('mc-smart-episode').addEventListener('change',updateEstimate);
+$('mc-smart-batch').addEventListener('click',()=>queueDownloads(true));
+$('mc-smart-next').addEventListener('click',()=>queueDownloads(false));
+$('mc-smart-open').addEventListener('click',()=>{if(nativeCanDownload())window.NativeShell.openDownloadManager();});
+view.addEventListener('pageshow',async()=>{
+  if(initialized){
+   try{const account=await currentApi()?.getCurrentUser?.();if(!account||String(account.Id)!==userId){
+    $('mc-smart-enabled').checked=false;initialized=false;preferenceKey=null;userId=null;
+    syncControls();status('mc-smart-user','Zmieniono konto. Wczytywanie ustawień bieżącego użytkownika…');
+   }}catch(_){$('mc-smart-enabled').checked=false;initialized=false;preferenceKey=null;userId=null;syncControls();}
+  }
+  if(!initialized)await initialize();
+ });
+initialize();
+})();
+</script>
+<script>
+(function(){
+ 'use strict';
+ const root=document.getElementById('misioCacheConfigPage');
+ if(!root || root.dataset.mcDevicesMounted==='1')return;
+ root.dataset.mcDevicesMounted='1';
+ const list=root.querySelector('#mc-devices-list'),state=root.querySelector('#mc-devices-state');
+ const details=root.querySelector('#mc-smart-devices-panel');
+ const button=root.querySelector('#mc-devices-refresh');
+ const el=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=String(text);return node;};
+ const value=(obj,name)=>obj?.[name]??obj?.[name[0].toUpperCase()+name.slice(1)];
+ function when(iso){if(!iso)return 'brak';const dt=new Date(iso);return Number.isFinite(dt.getTime())?dt.toLocaleString('pl-PL'):'brak';}
+ async function reload(){
+  state.textContent='Pobieranie listy urządzeń…';list.replaceChildren();
+  try{
+   const api=window.MisioCacheSmartDownloads;
+   if(typeof api?.listDevices!=='function')throw Error('Moduł MisioCache nie został załadowany. Sprawdź instalację i restart Jellyfina.');
+   const devices=await api.listDevices();
+   state.textContent=devices.length?('Zarejestrowane urządzenia: '+devices.length):'Brak urządzeń — uruchom oficjalną aplikację Android z MisioCache.';
+   for(const d of devices){
+    const row=el('article');row.className='mc-device-row';
+    const title=el('header',(value(d,'userName')||String(value(d,'userId')).slice(0,8))+' · '+(value(d,'deviceName')||value(d,'deviceId')));
+    const meta=el('p','Klient: '+(value(d,'client')||'nieznany')+' · Android zgłoszony: '+(value(d,'nativeSupported')?'tak':'nie')+' · Ostatnio widziane: '+when(value(d,'lastSeen'))+' · Moduł: '+(value(d,'lastHookSeen')?'zgłosił aktywność '+when(value(d,'lastHookSeen')):'nie zgłosił aktywności'));
+    meta.className='mc-device-muted';
+    const recent=el('p','Ostatnia próba: '+(value(d,'lastAction')||'brak')+' ('+when(value(d,'lastActionAt'))+')');recent.className='mc-device-muted';
+    const form=el('div');form.className='mc-device-fields';
+    function field(label,type,valueText){const l=el('label',label);const input=el('input');input.type=type;if(type==='checkbox')input.checked=!!valueText;else input.value=String(valueText);if(type==='number'){input.min='1';input.step='1';}l.appendChild(input);form.appendChild(l);return input;}
+    const enabled=field('Smart Downloads','checkbox',value(d,'enabled')===true);
+    const count=field('Kolejne odcinki','number',value(d,'count')??2);
+    const gb=field('Limit GB','text',value(d,'budgetGB')??5);
+    const save=el('button','Zapisz dla urządzenia');save.type='button';save.className='emby-button';form.appendChild(save);
+    const info=el('p');info.setAttribute('role','status');info.className='mc-device-muted';
+    save.addEventListener('click',async()=>{
+     save.disabled=true;info.textContent='Zapisywanie…';
+     try{
+      const n=String(count.value).trim(),budget=String(gb.value).trim().replace(',','.');
+      if(!/^[1-9]\d*$/.test(n)||!Number.isSafeInteger(Number(n))||!Number.isFinite(Number(budget))||Number(budget)<=0)throw Error('Podaj poprawną liczbę odcinków i GB.');
+      await window.MisioCacheSmartDownloads.manageDevice({userId:value(d,'userId'),deviceId:value(d,'deviceId'),enabled:enabled.checked,count:Number(n),budgetGB:Number(budget)});
+      info.textContent='Zapisano na serwerze. Telefon odczyta ustawienia przy następnym pobieraniu.';
+     }catch(e){info.textContent='Błąd: '+String(e?.message||e);}finally{save.disabled=false;}
+    });
+    row.append(title,meta,recent,form,info);list.appendChild(row);
+   }
+  }catch(e){state.textContent='Nie można pobrać listy (wymaga administratora): '+String(e?.message||e);}
+ }
+ button.addEventListener('click',()=>{void reload();});
+ details.addEventListener('toggle',()=>{if(details.open)void reload();});
+ const route=window.location.hash||'';
+ if(route.includes('pane=download'))root.querySelector('#mc-smart-download-panel').open=true;
+ if(route.includes('pane=devices'))details.open=true;
+})();
+</script>
 </body></html>

@@ -4,14 +4,14 @@ const path=require('node:path');
 const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const script=fs.readFileSync(path.join(__dirname,'../../src/Jellyfin.Plugin.MisioCache/Web/smart-downloads.js'),'utf8');
-const page=fs.readFileSync(path.join(__dirname,'../../src/Jellyfin.Plugin.MisioCache/Web/overviewPage.html'),'utf8');
+const page=fs.readFileSync(path.join(__dirname,'../../src/Jellyfin.Plugin.MisioCache/Web/configPage.html'),'utf8');
 const root=path.join(__dirname,'../../src/Jellyfin.Plugin.MisioCache');
 const guid=n=>`11111111-1111-4111-8111-${String(n).padStart(12,'0')}`;
 const USER1=guid(999), USER2=guid(998), SERIES=guid(990);
 const episodes=[1,2,3,4,5].map(n=>({Id:guid(n),Type:'Episode',SeriesId:SERIES,ParentIndexNumber:1,IndexNumber:n,MediaSources:[{Size:100000000}]}));
 async function flush(){for(let n=0;n<5;n++)await new Promise(resolve=>setImmediate(resolve));}
 function setup({user=USER1,native=true,api=true,storage=new Map(),missingSize=false,bigSize=false,server='server1',device='phone1',singleDownload=true}={}){
- const nativeCalls=[],events=[];
+ const nativeCalls=[],events=[],registered=new Map();
  const userHolder={id:user};
  const data=episodes.map(x=>({...x,MediaSources:missingSize?[]:[{Size:bigSize?3e9:100000000}]}));
  const nativeShell={
@@ -21,7 +21,7 @@ function setup({user=USER1,native=true,api=true,storage=new Map(),missingSize=fa
   openDownloadManager(){}
  };
  const service={
-  getCurrentUser:async()=>({Id:userHolder.id}),serverId:()=>server,
+  getCurrentUser:async()=>({Id:userHolder.id}),serverId:()=>server,getUrl:path=>'/'+path,accessToken:()=> 'test-token',
   getItems:async(_,query)=>{
    if(query.Ids)return {Items:data.filter(x=>x.Id.replaceAll('-','')===String(query.Ids).replaceAll('-',''))};
    if(query.IncludeItemTypes==='Episode')return {Items:data.slice().reverse()};
@@ -33,14 +33,34 @@ function setup({user=USER1,native=true,api=true,storage=new Map(),missingSize=fa
   ApiClient:api?service:undefined,
   localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)},
   location:{origin:'http://server'},
+  fetch:async(uri,opts={})=>{
+   const route=String(uri).split('/smart-downloads/')[1];
+   const currentKey=userHolder.id+':'+device;
+   const rec=registered.get(currentKey);
+   let reply;
+   if(route.startsWith('current?')){
+    if(!rec)registered.set(currentKey,{enabled:false,count:2,budgetGB:5});
+    reply={record:registered.get(currentKey),isNew:!rec};
+   }else if(route==='current'&&opts.method==='POST'){
+    const value=JSON.parse(opts.body);registered.set(currentKey,value);reply={record:value,isNew:false};
+   }else if(route==='current/hook'||route==='current/status'){
+    return {ok:true,status:204};
+   }else if(route==='devices')reply={devices:[...registered.values()]};
+   else throw Error('Unexpected request: '+route);
+   return {ok:true,status:200,json:async()=>reply};
+  },
   addEventListener(){},dispatchEvent:e=>events.push(e),
   setInterval:()=>1,clearInterval:()=>{},
  };
  const context={window,console,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}}};
  vm.runInNewContext(script,context,{filename:'smart-downloads.js'});
- return {window,nativeShell,nativeCalls,events,storage,userHolder,service,
+ return {window,nativeShell,nativeCalls,events,storage,registered,userHolder,service,
   prefKey:(id=userHolder.id)=>`misio.cache.smart.v1:${server}:${id}:${device}`,
-  enable:(count=2,budgetGB=5)=>storage.set(`misio.cache.smart.v1:${server}:${userHolder.id}:${device}`,JSON.stringify({enabled:true,count,budgetGB})),
+  enable:(count=2,budgetGB=5)=>{
+   const value={enabled:true,count,budgetGB:Number(String(budgetGB).replace(',','.'))};
+   storage.set(`misio.cache.smart.v1:${server}:${userHolder.id}:${device}`,JSON.stringify(value));
+   registered.set(userHolder.id+':'+device,value);
+  },
   async download(n){const result=nativeShell.downloadFile({itemId:guid(n)});await flush();return result;},
   async downloadFiles(items){const result=nativeShell.downloadFiles(items);await flush();return result;}
  };
@@ -49,6 +69,16 @@ function setup({user=USER1,native=true,api=true,storage=new Map(),missingSize=fa
  const disabled=setup();
  assert.equal(await disabled.download(1),'native-single');
  assert.equal(disabled.nativeCalls.length,1,'native action remains untouched when opt-out');
+ // The exact same MisioCache server API used by the popup must drive the hook.
+ const connected=setup();
+ const initial=await connected.window.MisioCacheSmartDownloads.getSettings();
+ assert.equal(initial.enabled,false,'new phone starts disabled');
+ const saved=await connected.window.MisioCacheSmartDownloads.saveSettings({enabled:true,count:2,budgetGB:5});
+ assert.equal(saved.enabled,true,'server confirmed opt-in');
+ await connected.download(1);
+ assert.equal(connected.nativeCalls.length,2,'server opt-in adds next episodes via standard native action');
+ assert.equal(connected.registered.get(USER1+':phone1').count,2);
+ assert.equal(JSON.parse(connected.storage.get(connected.prefKey())).enabled,true,'local compatibility cache is synced');
  const active=setup();active.enable();
  assert.equal(await active.download(1),'native-single');
  assert.equal(active.nativeCalls.length,2,'user action + one extra batch');

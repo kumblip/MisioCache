@@ -5,13 +5,14 @@
  */
 (function () {
     'use strict';
-    if (window.MisioCacheSmartDownloads?.__clientVersion === 1) return;
+    if (window.MisioCacheSmartDownloads?.__clientVersion === 2) return;
 
     const GUID = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
     const GB = 1000000000;
     const PROCESSING = new Set();
     const QUEUED = new Set(); // only within the current WebView session
     let suppressHook = 0;
+    let hookAnnounced = false;
 
     function idOf(value) {
         const valueString = String(value ?? '');
@@ -44,16 +45,88 @@
         return Number.isFinite(number) && number > 0 && Number.isSafeInteger(Math.ceil(number * GB))
             ? number : null;
     }
-    function preferences(key) {
+    // Backward-compatible, device-local settings are migrated once to the
+    // server registry. After that, MisioCache's authenticated API is the
+    // source of truth for BOTH its panel and MisioFlix's presentation popup.
+    function legacyPreferences(key) {
         try {
             const saved = JSON.parse(window.localStorage.getItem(key) || 'null');
-            if (!saved || saved.enabled !== true) return null;
+            if (!saved || typeof saved !== 'object') return null;
             const legacy = saved.budgetGB === undefined && saved.budgetGiB !== undefined
                 ? Number(saved.budgetGiB) * 1073741824 / GB : saved.budgetGB;
             const count = countOf(saved.count);
             const budgetGB = budgetOf(legacy);
-            return count !== null && budgetGB !== null ? { enabled: true, count, budgetGB } : null;
-        } catch (_) { return null; } // fail closed without storage access
+            return count !== null && budgetGB !== null
+                ? { enabled: saved.enabled === true, count, budgetGB } : null;
+        } catch (_) { return null; }
+    }
+    function api() { return window.ApiClient || window.ConnectionManager?.getApiClient?.() || null; }
+    async function request(path, method = 'GET', body) {
+        const client = api();
+        if (!client || typeof client.getUrl !== 'function') throw Error('Brak aktywnego API Jellyfin.');
+        const token = typeof client.accessToken === 'function' ? client.accessToken() : client.accessToken;
+        if (!token) throw Error('Brak tokenu Jellyfin — ustawienia nie zostaną zapisane.');
+        const headers = { Authorization: 'MediaBrowser Token="' + String(token).replace(/["\r\n]/g, '') + '"' };
+        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        const result = await (window.fetch || fetch)(client.getUrl('MisioCache/api/smart-downloads/' + path), {
+            method, headers, cache: 'no-store', ...(body !== undefined ? { body: JSON.stringify(body) } : {})
+        });
+        if (!result.ok) throw Error('MisioCache API HTTP ' + result.status);
+        return result.status === 204 ? null : result.json();
+    }
+    async function getSettings() {
+        const client = api();
+        if (!client || typeof client.getCurrentUser !== 'function') throw Error('Brak użytkownika Jellyfin.');
+        const user = await client.getCurrentUser();
+        if (!idOf(user?.Id)) throw Error('Brak konta Jellyfin.');
+        const key = accountKey(client, String(user.Id));
+        const response = await request('current?nativeSupported=' + (nativeSupported() ? 'true' : 'false'));
+        let record = response?.record || response?.Record;
+        if (!record) throw Error('Nieprawidłowa odpowiedź MisioCache.');
+        // Never overwrite an existing server record from an old stale device cache.
+        if ((response.isNew || response.IsNew) && nativeSupported()) {
+            const legacy = legacyPreferences(key);
+            if (legacy) {
+                const migrated = await request('current', 'POST', { ...legacy, nativeSupported: true });
+                record = migrated.record || migrated.Record;
+            }
+        }
+        // Jellyfin may serialize controller records as PascalCase or camelCase.
+        const field = name => record?.[name] ?? record?.[name[0].toUpperCase() + name.slice(1)];
+        const resolved = {
+            enabled: field('enabled') === true,
+            count: Number(field('count')),
+            budgetGB: Number(field('budgetGB')),
+            userName: String(field('userName') || ''),
+            deviceName: String(field('deviceName') || ''),
+            lastAction: String(field('lastAction') || ''),
+            lastHookSeen: field('lastHookSeen') || null,
+            preferenceKey: key, nativeSupported: nativeSupported()
+        };
+        try {
+            window.localStorage.setItem(key, JSON.stringify({
+                enabled: resolved.enabled, count: resolved.count, budgetGB: resolved.budgetGB
+            }));
+        } catch (_) { /* server registry remains authoritative */ }
+        return resolved;
+    }
+    async function saveSettings(values) {
+        const count = countOf(values?.count);
+        const budgetGB = budgetOf(values?.budgetGB);
+        if (count === null || budgetGB === null) throw Error('Niepoprawna liczba odcinków lub limit GB.');
+        if (values?.enabled === true && !nativeSupported()) throw Error('Brak menedżera pobierania Androida.');
+        const updated = await request('current', 'POST', {
+            enabled: values?.enabled === true, count, budgetGB, nativeSupported: nativeSupported()
+        });
+        const result = await getSettings();
+        window.dispatchEvent(new CustomEvent('misiocache-smart-downloads-changed', { detail: { serverSaved: true } }));
+        return result;
+    }
+    async function listDevices() { const data = await request('devices'); return data?.devices || data?.Devices || []; }
+    async function manageDevice(payload) { return await request('devices/manage', 'POST', payload); }
+    async function reportStatus(message) {
+        try { await request('current/status', 'POST', { message: String(message).slice(0, 400) }); }
+        catch (_) { /* never interrupt native download */ }
     }
     function accountKey(api, userId) {
         const server = typeof api.serverId === 'function' ? String(api.serverId()) : window.location.origin;
@@ -66,6 +139,7 @@
                 time: Date.now(), message
             }));
         } catch (_) { /* do not interfere with official downloads */ }
+        void reportStatus(message);
         try {
             window.dispatchEvent(new CustomEvent('misiocache-smart-downloads-status', {
                 detail: { key, message }
@@ -73,8 +147,9 @@
         } catch (_) { /* status event is optional */ }
     }
     function extractItemId(download) {
+        if (typeof download === 'string') return idOf(download);
         if (!download || typeof download !== 'object') return '';
-        for (const item of [download.itemId, download.ItemId, download.id, download.Id]) {
+        for (const item of [download.itemId, download.ItemId, download.id, download.Id, download.item?.Id, download.Item?.Id]) {
             const id = idOf(item);
             if (id) return id;
         }
@@ -130,8 +205,15 @@
             const userId = String(account?.Id || '');
             if (!idOf(userId)) return;
             key = accountKey(api, userId);
-            const opts = preferences(key);
-            if (!opts) return; // no implicit opt-in for another user or phone
+            const config = await getSettings();
+            if (config.preferenceKey !== key) return;
+            const opts = config.enabled === true ? {
+                count: countOf(config.count), budgetGB: budgetOf(config.budgetGB)
+            } : null;
+            if (!opts || opts.count === null || opts.budgetGB === null) {
+                status(key, 'Standardowe Pobierz: Smart Downloads jest wyłączone lub ma nieprawidłowe ustawienia.');
+                return;
+            }
 
             const currentResponse = await queryItems(api, userId, {
                 Ids: currentId, Fields: 'MediaSources', Limit: 1
@@ -179,8 +261,8 @@
             // Revalidate account, server, phone and preferences after network calls.
             const verified = await api.getCurrentUser();
             if (idOf(verified?.Id) !== idOf(userId) || accountKey(api, userId) !== key || !nativeSupported()) return;
-            const latest = preferences(key);
-            if (!latest || latest.count !== opts.count || latest.budgetGB !== opts.budgetGB) return;
+            const latest = await getSettings();
+            if (!latest.enabled || latest.count !== opts.count || latest.budgetGB !== opts.budgetGB || latest.preferenceKey !== key) return;
 
             const additional = next.filter(item => !QUEUED.has(key + ':' + idOf(item.Id)));
             if (!additional.length) {
@@ -209,8 +291,10 @@
         const shell = window.NativeShell;
         if (!nativeSupported()) return false;
         for (const name of ['downloadFile', 'downloadFiles']) {
-            const original = shell[name];
-            if (typeof original !== 'function' || original.__misioCacheOriginal) continue;
+            const existing = shell[name];
+            if (typeof existing !== 'function') continue;
+            if (existing.__misioCacheVersion === 2) continue;
+            const original = existing.__misioCacheOriginal || existing;
             function wrapped(arg) {
                 // Preserve native return value, exceptions and argument shape.
                 const result = original.apply(this, arguments);
@@ -219,11 +303,18 @@
                 if (Array.isArray(entries) && entries.length === 1) {
                     const itemId = extractItemId(entries[0]);
                     if (itemId) void enqueueNext(itemId);
+                    else void reportStatus('Wykryto „Pobierz”, ale nie udało się ustalić ID odcinka.');
                 }
                 return result;
             }
             wrapped.__misioCacheOriginal = original;
+            wrapped.__misioCacheVersion = 2;
             shell[name] = wrapped;
+        }
+        if (!hookAnnounced) {
+            hookAnnounced = true;
+            void getSettings().then(() => request('current/hook', 'POST'))
+                .catch(() => { hookAnnounced = false; });
         }
         return true;
     }
@@ -231,7 +322,8 @@
     // Public API for the MisioCache download page. It calls the official native
     // method but suppresses auto-expansion of explicitly selected batches.
     window.MisioCacheSmartDownloads = Object.freeze({
-        __clientVersion: 1, downloadManual, refreshHook: install
+        __clientVersion: 2, downloadManual, refreshHook: install,
+        getSettings, saveSettings, listDevices, manageDevice, reportStatus
     });
 
     // The Android bridge may be installed after the Jellyfin web entrypoint.
@@ -244,4 +336,19 @@
     window.addEventListener('hashchange', install);
     window.addEventListener('pageshow', install);
     window.addEventListener('focus', install);
+    // Older MisioFlix popup versions may still write localStorage directly.
+    // Bridge their explicit save event to the server without embedding
+    // downloading logic in MisioFlix. The new popup uses saveSettings().
+    window.addEventListener('misiocache-smart-downloads-changed', event => {
+        if (event?.detail?.serverSaved) return;
+        void (async () => {
+            try {
+                const client = api();
+                const user = await client?.getCurrentUser?.();
+                if (!idOf(user?.Id)) return;
+                const saved = legacyPreferences(accountKey(client, String(user.Id)));
+                if (saved) await saveSettings(saved);
+            } catch (_) { /* cannot accept unverified opt-in */ }
+        })();
+    });
 })();

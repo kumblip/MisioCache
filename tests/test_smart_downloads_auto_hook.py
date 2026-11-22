@@ -24,7 +24,7 @@ class NativeDownloadQueueTests(unittest.TestCase):
             self.assertNotIn('Jellyfin.Plugin.MisioFlix', file)
         self.assertIn('downloadManual', js)
         self.assertIn('NativeShell', js)
-        self.assertIn('enabled !== true', js)
+        self.assertIn('config.enabled === true', js)
 
     @unittest.skipUnless(shutil.which('node'), 'Node.js not installed')
     def test_native_bridge_and_opt_in_behavior(self):

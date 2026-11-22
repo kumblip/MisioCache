@@ -13,6 +13,7 @@ public sealed class MisioCacheServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection services, IServerApplicationHost applicationHost)
     {
         services.AddTransient<IStartupFilter, MisioCacheSmartDownloadsStartupFilter>();
+        services.AddSingleton<MisioCacheSmartDeviceStore>();
         services.AddHttpClient("MisioCacheUpdates", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);

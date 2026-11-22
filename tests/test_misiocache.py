@@ -36,9 +36,8 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
         self.assertNotIn('97d15b37-b868-492b-83da-eb67b16a0d44',self.plugin)
     def test_two_native_menu_entries(self):
         self.assertEqual(self.plugin.count('EnableInMainMenu = true'),2)
-        self.assertIn('MisioCacheOverview',self.plugin)
-        self.assertIn('MisioCache — aktualizacje',self.plugin)
-        self.assertIn('MisioCache — pobieranie',self.plugin)
+        self.assertIn('MisioCacheVersions',self.plugin)
+        self.assertIn('MisioCache — ustawienia',self.plugin)
     def test_settings_only_have_updates(self):
         cfg=(ROOT/'src/Jellyfin.Plugin.MisioCache/Configuration/PluginConfiguration.cs').read_text(encoding='utf-8')
         self.assertIn('AutoCheckUpdates',cfg)
@@ -48,7 +47,7 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
         self.assertIn('ApiClient.updatePluginConfiguration(pluginId,config)',self.settings)
         self.assertNotIn('mc-http-optin',self.settings)
     def test_smart_downloads_remain_opt_in(self):
-        overview=(ROOT/'src/Jellyfin.Plugin.MisioCache/Web/overviewPage.html').read_text(encoding='utf-8')
+        overview=(ROOT/'src/Jellyfin.Plugin.MisioCache/Web/configPage.html').read_text(encoding='utf-8')
         self.assertIn('NativeShell.downloadFiles',overview)
         self.assertIn('enabled:false,count:2',overview)
         self.assertIn('mc-smart-count',overview)
