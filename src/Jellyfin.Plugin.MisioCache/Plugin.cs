@@ -30,7 +30,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         {
             Name = "MisioCache",
             EmbeddedResourcePath = "Jellyfin.Plugin.MisioCache.Web.configPage.html",
-            DisplayName = "MisioCache — ustawienia",
+            DisplayName = "MisioCache — aktualizacje",
             MenuIcon = "settings",
             EnableInMainMenu = true
         };
@@ -38,7 +38,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         {
             Name = "MisioCacheOverview",
             EmbeddedResourcePath = "Jellyfin.Plugin.MisioCache.Web.overviewPage.html",
-            DisplayName = "MisioCache",
+            DisplayName = "MisioCache — pobieranie",
             MenuIcon = "storage",
             EnableInMainMenu = true
         };

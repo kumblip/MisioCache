@@ -11,7 +11,7 @@ class CleanSmartDownloadsTests(unittest.TestCase):
             self.assertIn(key,h)
     def test_diagnostics_are_not_in_browser_or_config(self):
         html=(SRC/'Web/configPage.html').read_text(encoding='utf-8')
-        self.assertIn('MisioCache — ustawienia',html)
+        self.assertIn('MisioCache — aktualizacje',html)
         self.assertIn('Aktualizacje MisioCache',html)
         for key in ('Stan obserwatora','Suma deklarowanych','Pomiar bajtów','Diagnostyka obecnego urządzenia'):
             self.assertNotIn(key,html)

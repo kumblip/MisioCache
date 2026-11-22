@@ -37,7 +37,8 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
     def test_two_native_menu_entries(self):
         self.assertEqual(self.plugin.count('EnableInMainMenu = true'),2)
         self.assertIn('MisioCacheOverview',self.plugin)
-        self.assertIn('MisioCache — ustawienia',self.plugin)
+        self.assertIn('MisioCache — aktualizacje',self.plugin)
+        self.assertIn('MisioCache — pobieranie',self.plugin)
     def test_settings_only_have_updates(self):
         cfg=(ROOT/'src/Jellyfin.Plugin.MisioCache/Configuration/PluginConfiguration.cs').read_text(encoding='utf-8')
         self.assertIn('AutoCheckUpdates',cfg)
