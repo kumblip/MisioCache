@@ -6,11 +6,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Compile Include="../../src/Jellyfin.Plugin.MisioCache/Services/MisioCacheResponseByteMeter.cs" Link="MisioCacheResponseByteMeter.cs" />
-    <Compile Include="Program.cs" />
-    <!-- Compile the exact same production range engine, not a reimplementation. -->
-    <Compile Include="../../src/Jellyfin.Plugin.MisioCache/Services/MisioCacheHttpObservationStore.cs" Link="MisioCacheHttpObservationStore.cs" />
-  </ItemGroup>
+  <ItemGroup><Compile Include="Program.cs" /></ItemGroup>
 </Project>

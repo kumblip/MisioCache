@@ -38,16 +38,21 @@ class MisioCacheFirstReleaseTests(unittest.TestCase):
         self.assertEqual(self.plugin.count('EnableInMainMenu = true'),2)
         self.assertIn('MisioCacheOverview',self.plugin)
         self.assertIn('MisioCache — ustawienia',self.plugin)
-    def test_settings_saved_using_jellyfin_api(self):
+    def test_settings_only_have_updates(self):
+        cfg=(ROOT/'src/Jellyfin.Plugin.MisioCache/Configuration/PluginConfiguration.cs').read_text(encoding='utf-8')
+        self.assertIn('AutoCheckUpdates',cfg)
+        self.assertNotIn('EnablePassiveHttpDiagnostics',cfg)
+        self.assertNotIn('DownloadUntilEnd',cfg)
         self.assertIn('ApiClient.getPluginConfiguration(pluginId)',self.settings)
-        self.assertIn('ApiClient.updatePluginConfiguration(pluginId,c)',self.settings)
-        for field in ('DownloadUntilEnd','PreserveWatchedPartsUntilCompletion','DownloadWhilePaused',
-                      'DeleteAfterCompleted','KeepAfterStopMinutes','PlannedMaxDeviceCacheGiB'):
-            self.assertIn(field,self.settings)
-    def test_no_playback_hooks(self):
-        for needle in ('playbackManager', 'XMLHttpRequest(', 'serviceWorker.register(', 'CacheDataSource', 'new MediaSource(', '/Videos/', 'MediaSource(', 'video.src'):
-            self.assertNotIn(needle,self.settings)
-        self.assertIn('nie zapisuje jeszcze filmu w cache',self.settings)
+        self.assertIn('ApiClient.updatePluginConfiguration(pluginId,config)',self.settings)
+        self.assertNotIn('mc-http-optin',self.settings)
+    def test_smart_downloads_remain_opt_in(self):
+        overview=(ROOT/'src/Jellyfin.Plugin.MisioCache/Web/overviewPage.html').read_text(encoding='utf-8')
+        self.assertIn('NativeShell.downloadFiles',overview)
+        self.assertIn('enabled:false,count:2',overview)
+        self.assertIn('mc-smart-count',overview)
+        self.assertIn('mc-smart-budget',overview)
+        self.assertNotIn('serviceWorker.register(',overview)
         self.assertIn("query('MisioCache/api/updates/status'",self.settings)
     def test_auto_release_on_commit(self):
         self.assertIn('  push:\n',self.release)

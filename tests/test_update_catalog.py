@@ -73,7 +73,7 @@ class UpdateCatalogTests(unittest.TestCase):
                           'UseMiddleware','/web/index.html'):
             self.assertNotIn(forbidden,self.svc)
             self.assertNotIn(forbidden,self.reg)
-        # Read-only startup observer is allowed; it never modifies responses.
-        self.assertIn('IStartupFilter, MisioCachePassiveHttpStartupFilter',self.reg)
+        # No more startup observer: only update services are registered.
+        self.assertNotIn('IStartupFilter',self.reg)
 
 if __name__=='__main__':unittest.main()

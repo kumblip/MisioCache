@@ -1,172 +1,27 @@
 <!doctype html>
 <html lang="pl"><head><meta charset="utf-8"><title>MisioCache — ustawienia</title></head><body>
 <div data-role="page" class="page type-interior pluginConfigurationPage" id="misioCacheConfigPage">
- <style>
- #misioCacheConfigPage .mc-wrap{max-width:920px;margin:0 auto;padding:20px 16px 60px}
- #misioCacheConfigPage .mc-panel{padding:18px 22px;margin:18px 0;border:1px solid rgba(145,183,245,.4);border-radius:12px;background:rgba(70,98,145,.09)}
- #misioCacheConfigPage .mc-panel h2{margin:0 0 9px}
- #misioCacheConfigPage .mc-grid{display:grid;grid-template-columns:minmax(180px,230px) minmax(0,1fr);gap:10px}
- #misioCacheConfigPage .mc-grid dd{margin:0;overflow-wrap:anywhere}
- #misioCacheConfigPage .mc-field{display:flex;gap:10px;margin:11px 0;align-items:center;flex-wrap:wrap}
- #misioCacheConfigPage .mc-field input[type=number]{width:135px;max-width:100%}
- #misioCacheConfigPage .mc-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
- #misioCacheConfigPage .mc-status{min-height:1.4em;white-space:pre-wrap;overflow-wrap:anywhere}
- #misioCacheConfigPage .mc-note{opacity:.85}
- #misioCacheConfigPage .mc-diagnostic-grid{display:grid;grid-template-columns:minmax(175px,250px) minmax(0,1fr);gap:9px;margin:12px 0}
- #misioCacheConfigPage .mc-diagnostic-grid dd{margin:0;overflow-wrap:anywhere}
- #misioCacheConfigPage .mc-live-list{list-style:none;padding:0;margin:12px 0}
- #misioCacheConfigPage .mc-live-list li{padding:9px 0;border-bottom:1px solid rgba(145,183,245,.25);overflow-wrap:anywhere}
- #misioCacheConfigPage .mc-updates-grid{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:9px;margin:12px 0}
- #misioCacheConfigPage .mc-updates-grid dd{overflow-wrap:anywhere;margin:0}
- @media(max-width:640px){#misioCacheConfigPage .mc-grid,#misioCacheConfigPage .mc-updates-grid,#misioCacheConfigPage .mc-diagnostic-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:14px}}
-
- #misioCacheConfigPage .mc-wrap{max-width:1320px;padding-top:8px}
- #misioCacheConfigPage .mc-compact-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
- #misioCacheConfigPage .mc-compact-head h2{margin:0;font-size:1.15rem}
- #misioCacheConfigPage .mc-compact-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
- #misioCacheConfigPage .mc-compact-actions button{margin:0;padding:7px 11px;min-height:34px;font-size:.87rem}
- #misioCacheConfigPage .mc-compact-actions label{font-size:.86rem;display:flex;align-items:center;gap:5px}
- #misioCacheConfigPage .mc-dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:9px 0}
- #misioCacheConfigPage .mc-kpi{min-width:0;border:1px solid rgba(145,183,245,.35);border-radius:8px;padding:9px;background:rgba(112,127,170,.08)}
- #misioCacheConfigPage .mc-kpi h3{font-size:.88rem;margin:0 0 7px;letter-spacing:.02em;color:#ded9f9}
- #misioCacheConfigPage .mc-kpi dl{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:5px;row-gap:5px;margin:0;font-size:.79rem;line-height:1.25}
- #misioCacheConfigPage .mc-kpi dt{opacity:.84;min-width:0}
- #misioCacheConfigPage .mc-kpi dd{margin:0;text-align:right;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums}
- #misioCacheConfigPage .mc-small-title{font-size:.91rem;margin:9px 0 4px}
- #misioCacheConfigPage .mc-table-compact{width:100%;border-collapse:collapse;font-size:.76rem;font-variant-numeric:tabular-nums}
- #misioCacheConfigPage .mc-table-compact td,#misioCacheConfigPage .mc-table-compact th{text-align:left;padding:4px 5px;border-bottom:1px solid rgba(145,183,245,.15);white-space:nowrap}
- #misioCacheConfigPage .mc-table-compact th{opacity:.75}
- #misioCacheConfigPage .mc-details{margin-top:9px;border-top:1px solid rgba(145,183,245,.25);padding-top:7px}
- #misioCacheConfigPage .mc-details summary{cursor:pointer;font-size:.83rem;opacity:.86}
- #misioCacheConfigPage .mc-compact-sub{font-size:.78rem;margin:5px 0 3px;opacity:.82}
- #misioCacheConfigPage #mc-observation{padding:12px 14px;margin:8px 0}
- #misioCacheConfigPage #mc-http-status{font-size:.78rem;min-height:0;margin:5px 0}
- #misioCacheConfigPage .mc-compact-pill{border:1px solid rgba(145,183,245,.5);border-radius:14px;padding:2px 7px;font-size:.75rem}
- @media(max-width:1120px){#misioCacheConfigPage .mc-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
- @media(max-width:600px){#misioCacheConfigPage .mc-dashboard{grid-template-columns:1fr}#misioCacheConfigPage .mc-table-compact{font-size:.7rem}#misioCacheConfigPage .mc-table-compact td:nth-child(5),#misioCacheConfigPage .mc-table-compact th:nth-child(5){display:none}}
- </style>
- <div data-role="content" class="mc-wrap">
-  <h1 style="font-size:1.25rem;margin:5px 0">MisioCache <small style="font-weight:400;opacity:.7">— ustawienia i diagnostyka</small></h1>
-  <section class="mc-panel" id="mc-observation" aria-labelledby="mc-observation-heading">
-   <div class="mc-compact-head">
-    <h2 id="mc-observation-heading">MisioCache — diagnostyka HTTP <span class="mc-compact-pill">ostatnie 30 min</span></h2>
-    <div class="mc-compact-actions">
-     <label><input type="checkbox" id="mc-http-optin"/> Obserwacja</label>
-     <label title="Opcjonalny test: obserwacja zapisu odpowiedzi HTTP, bez buforowania filmu"><input type="checkbox" id="mc-meter-optin"/> Pomiar bajtów</label>
-     <button type="button" class="raised emby-button" id="mc-http-refresh">Odśwież</button>
-     <button type="button" class="emby-button" id="mc-http-reset">Zeruj</button>
-    </div>
-   </div>
-   <p class="mc-compact-sub">Licznik bajtów = zapis przekazany do transportu HTTP, nie potwierdzony odbiór przez telefon. Kierunki oznaczają zmianę początku zakresu, nie pozycję czasu wideo.</p>
-   <div class="mc-dashboard">
-    <div class="mc-kpi"><h3>Żądania i odpowiedzi</h3><dl>
-     <dt>Żądania wideo</dt><dd id="mc-kpi-requests">—</dd>
-     <dt>Range / 206</dt><dd id="mc-kpi-range206">—</dd>
-     <dt>Poprawne Content-Range</dt><dd id="mc-kpi-validated">—</dd>
-     <dt>Bez analizy zakresów</dt><dd id="mc-kpi-invalid">—</dd>
-     <dt>Nakładające się 206</dt><dd id="mc-kpi-overlap">—</dd>
-     <dt>Błędy 416 / inne</dt><dd id="mc-kpi-issues">—</dd>
-    </dl></div>
-    <div class="mc-kpi"><h3>Przekazane bajty HTTP</h3><dl>
-     <dt>Wszystkie zapisy</dt><dd id="mc-kpi-accepted">—</dd>
-     <dt>Z zakresów 206</dt><dd id="mc-kpi-metered">—</dd>
-     <dt>Unikalne</dt><dd id="mc-kpi-realunique">—</dd>
-     <dt>Powtórzone</dt><dd id="mc-kpi-realrepeat">—</dd>
-     <dt>Udział powtórzeń</dt><dd id="mc-kpi-realrepeat-pct">—</dd>
-     <dt>Nieznany transfer</dt><dd id="mc-kpi-unknown">—</dd>
-    </dl></div>
-    <div class="mc-kpi"><h3>Kierunek Range / test przewijania</h3><dl>
-     <dt>Start do przodu</dt><dd id="mc-kpi-forward">—</dd>
-     <dt>Start do tyłu</dt><dd id="mc-kpi-backward">—</dd>
-     <dt>Ten sam start</dt><dd id="mc-kpi-same">—</dd>
-     <dt>Powtórzone po przód</dt><dd id="mc-kpi-forwardrepeat">—</dd>
-     <dt>Powtórzone po tył</dt><dd id="mc-kpi-backrepeat">—</dd>
-     <dt>Największy skok</dt><dd id="mc-kpi-maxjump">—</dd>
-    </dl></div>
-    <div class="mc-kpi"><h3>Jakość i czas odpowiedzi</h3><dl>
-     <dt>Niepełne zakresy</dt><dd id="mc-kpi-partial">—</dd>
-     <dt>Anulowane / błędy</dt><dd id="mc-kpi-cancel">—</dd>
-     <dt>Prędkość zapisu (Mb/s)</dt><dd id="mc-kpi-mbps">—</dd>
-     <dt>Czas p95 (ms)</dt><dd id="mc-kpi-p95">—</dd>
-     <dt>Pierwszy zapis p95 (ms)</dt><dd id="mc-kpi-first">—</dd>
-     <dt>Deklaracja / nakładanie</dt><dd id="mc-kpi-declared">—</dd>
-    </dl></div>
-   </div>
-   <div class="mc-compact-head"><h3 class="mc-small-title">Ostatnie 6 odpowiedzi — jeden rzut ekranu</h3><span class="mc-compact-sub" id="mc-compact-sessions">Sesje: —</span></div>
-   <div style="overflow-x:auto"><table class="mc-table-compact" aria-label="Podgląd sześciu ostatnich zakresów"><thead><tr><th>UTC</th><th>Plik</th><th>Ruch</th><th>Przekazano</th><th>Powtórzono</th><th>Czas</th><th>Stan</th></tr></thead><tbody id="mc-compact-recent"><tr><td colspan="7">Brak danych</td></tr></tbody></table></div>
-   <p id="mc-http-status" class="mc-status" role="status" aria-live="polite">Gotowe. Obserwacja wymaga świadomego włączenia.</p>
-   <details class="mc-details"><summary>Szczegóły: wszystkie liczniki, 25 zakresów i sesje</summary>
-   <h3>Pełna diagnostyka żądań HTTP</h3>
-   <p class="mc-note">Diagnostyka zakresów oraz przekazanych do HTTP bajtów — wersję wtyczki sprawdź w sekcji aktualizacji. Rozpoznaje aktualny tryb odtwarzania zgłaszany przez Jellyfin i — po włączeniu — zlicza wyłącznie żądania wideo HTTP, nagłówki Range oraz odpowiedzi 206. <strong>Nie pobiera filmu, nie zapisuje danych wideo i nie zmienia odtwarzacza.</strong></p>
-
-   <p class="mc-note">Po pierwszej instalacji wtyczki uruchom ponownie Jellyfin, aby aktywować pasywny obserwator w potoku HTTP. Nie zapisuje adresów, nazw, danych użytkowników ani treści żądań. Zakresy dla tego samego filmu łączy tylko anonimowy znacznik HMAC ważny do restartu serwera.</p>
-   <dl class="mc-diagnostic-grid">
-    <dt>Stan obserwatora</dt><dd id="mc-http-active">Nie sprawdzono</dd>
-    <dt>Zakres pomiaru</dt><dd>Ostatnie 30 minut; maksymalnie 2048 zdarzeń, wyłącznie w pamięci RAM</dd>
-    <dt>Wszystkie żądania mediów</dt><dd id="mc-http-total">—</dd>
-    <dt>Żądania z Range</dt><dd id="mc-http-range">—</dd>
-    <dt>Odpowiedzi HTTP 206</dt><dd id="mc-http-206">—</dd>
-    <dt>Potwierdzone Range + 206 + Content-Range</dt><dd id="mc-http-valid">—</dd>
-    <dt>Range, na które serwer odpowiedział 200</dt><dd id="mc-http-ignored">—</dd>
-    <dt>Odpowiedzi HTTP 416</dt><dd id="mc-http-416">—</dd>
-    <dt>Rozpoznane zakresy plików (GET + 206)</dt><dd id="mc-byte-parsed">—</dd>
-    <dt>Zakresy bez pełnych danych do porównania</dt><dd id="mc-byte-unparsed">—</dd>
-    <dt>Zaobserwowane materiały (anonimowe)</dt><dd id="mc-byte-media">—</dd>
-    <dt>Odpowiedzi z nakładającymi się zakresami</dt><dd id="mc-byte-overlap-count">—</dd>
-    <dt>Suma deklarowanych bajtów w 206</dt><dd id="mc-byte-total">—</dd>
-    <dt>Unikalne deklarowane bajty w badanym oknie</dt><dd id="mc-byte-unique">—</dd>
-    <dt>Deklarowane bajty żądane ponownie (częściowo lub całkowicie)</dt><dd id="mc-byte-repeated">—</dd>
-    <dt>Pliki / playlisty / segmenty</dt><dd id="mc-http-types">—</dd>
-    <dt>Bajty zapisane na urządzeniu</dt><dd>Nie da się ich zmierzyć pasywnie na NAS-ie</dd>
-   </dl>
-   <h3>Ostatnie zakresy bajtowe (do 25)</h3>
-   <p class="mc-note"><strong>Do testu powtórzeń nie zeruj liczników pomiędzy pierwszym obejrzeniem a cofnięciem.</strong> Zresetowanie usuwa historię zakresów potrzebną do porównania. Materiały M1, M2… są anonimowe i mają znaczenie tylko w bieżącym zestawieniu.</p>
-   <div style="overflow-x:auto">
-    <table class="tbl" style="width:100%;min-width:550px" aria-label="Ostatnie zakresy bajtów">
-     <thead><tr><th>UTC</th><th>Materiał</th><th>Zakres odpowiedzi</th><th>Zadeklarowano</th><th>Nakładanie</th><th>Kierunek</th><th>Przekazano</th><th>Powtórzono</th><th>Czas</th></tr></thead>
-     <tbody id="mc-byte-recent"><tr><td colspan="9">Brak danych do porównania</td></tr></tbody>
-    </table>
-   </div>
-   <h3>Aktywne odtwarzanie (Jellyfin /Sessions)</h3>
-   <ul class="mc-live-list" id="mc-live-sessions"><li>Nie sprawdzono</li></ul>
-
-
-   <p class="mc-note">Odpowiedź 206 potwierdza obsługę żądania częściowego, <strong>nie</strong> lokalny cache telefonu. Długość zakresu w nagłówku Content-Range nie jest pomiarem rzeczywiście przesłanych bajtów; powtórzony zakres nie dowodzi, że telefon wcześniej zapisał go w całości. Obserwator nie gwarantuje Direct Play. Gdy klient nie raportuje PlayMethod, pokazujemy „Nieznany”.</p>
-   </details>
-  </section>
-
-  <section class="mc-panel" aria-labelledby="mc-active-heading">
-   <h2 id="mc-active-heading">Stan funkcjonalności</h2>
-   <p><strong>Tryb diagnostyczny (seria 0.1).</strong> Wtyczka instaluje własny panel i zachowuje planowane ustawienia, ale <strong>nie zapisuje jeszcze filmu w cache</strong>, nie pobiera fragmentów w tle i <strong>nie zmienia odtwarzacza</strong> Jellyfina.</p>
-   <p class="mc-note">Przyszła integracja wymaga zgodnego adaptera odtwarzającego na urządzeniu. Instalacja DLL na NAS-ie nie daje dostępu do pamięci telefonu.</p>
-  </section>
-  <section class="mc-panel" aria-labelledby="mc-cap-heading">
-   <h2 id="mc-cap-heading">Diagnostyka obecnego urządzenia</h2>
-   <p class="mc-note">Poniższe dane dotyczą tej przeglądarki/okna aplikacji, w którym otwarto panel administratora. Nie oznaczają automatycznie zgodności natywnego odtwarzacza mobilnego.</p>
-   <dl class="mc-grid">
-    <dt>Bezpieczny kontekst HTTPS</dt><dd id="mc-secure">—</dd>
-    <dt>Cache Storage API</dt><dd id="mc-cache-storage">—</dd>
-    <dt>Service Worker API</dt><dd id="mc-worker">—</dd>
-    <dt>Oszacowane miejsce dostępne przeglądarce</dt><dd id="mc-quota">—</dd>
-    <dt>Pamięć zajęta przez dane tej witryny</dt><dd id="mc-usage">—</dd>
-   </dl>
-   <div class="mc-actions"><button type="button" class="raised emby-button" id="mc-check">Sprawdź ponownie</button></div>
-   <p id="mc-check-status" class="mc-status" role="status" aria-live="polite"></p>
-  </section>
-  <section class="mc-panel" aria-labelledby="mc-policy-heading">
-   <h2 id="mc-policy-heading">Preferowana polityka przyszłego cache</h2>
-   <p><strong>Te ustawienia są zapisywane, ale w diagnostycznej serii 0.1 nie są wykonywane.</strong> Pozwalają zachować wymagania bez wpływu na działający odtwarzacz.</p>
-   <form id="mc-policy-form">
-    <label class="mc-field"><input type="checkbox" id="mc-until-end"/> Pobieraj film do końca, jeżeli urządzenie i protokół na to pozwalają</label>
-    <label class="mc-field"><input type="checkbox" id="mc-preserve"/> Zachowuj również już obejrzane fragmenty do ukończenia filmu</label>
-    <label class="mc-field"><input type="checkbox" id="mc-pause"/> Kontynuuj pobieranie na pauzie</label>
-    <label class="mc-field"><input type="checkbox" id="mc-finish"/> Zwolnij cache po ukończeniu oglądania</label>
-    <label class="mc-field" for="mc-retain">Czas przechowywania po przerwaniu (minuty): <input type="number" class="emby-input" min="0" max="10080" step="1" id="mc-retain"/><small>0 = bez automatycznego limitu czasu (nadal obowiązuje limit miejsca i system operacyjny)</small></label>
-    <label class="mc-field" for="mc-limit">Planowany limit cache na urządzeniu (GiB): <input type="number" class="emby-input" min="1" max="512" step="1" id="mc-limit"/></label>
-    <div class="mc-actions"><button type="submit" class="raised button-submit emby-button">Zapisz preferencje</button></div>
-    <p id="mc-save-status" class="mc-status" role="status" aria-live="polite"></p>
-   </form>
-  </section>
+<style>
+#misioCacheConfigPage .mc-wrap{max-width:940px;margin:0 auto;padding:16px 16px 48px}
+#misioCacheConfigPage .mc-panel{padding:16px 20px;margin:13px 0;border:1px solid rgba(145,183,245,.35);border-radius:12px;background:rgba(70,98,145,.09)}
+#misioCacheConfigPage .mc-panel h2{margin:0 0 10px}
+#misioCacheConfigPage .mc-updates-grid{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:9px;margin:12px 0}
+#misioCacheConfigPage .mc-updates-grid dd{overflow-wrap:anywhere;margin:0}
+@media(max-width:640px){#misioCacheConfigPage .mc-updates-grid{grid-template-columns:1fr}#misioCacheConfigPage .mc-panel{padding:13px}}
+</style>
+<div data-role="content" class="mc-wrap">
+ <h1>MisioCache — ustawienia</h1>
+ <section class="mc-panel" aria-labelledby="mc-settings-scope">
+  <h2 id="mc-settings-scope">Smart Downloads na telefonie</h2>
+  <p>Funkcja jest domyślnie wyłączona. Każdy użytkownik włącza ją samodzielnie
+  w zakładce <strong>MisioCache</strong> na konkretnym telefonie z oficjalną aplikacją Jellyfin.</p>
+  <p>Każde konto i urządzenie ma własne ustawienia: liczbę następnych odcinków
+  (domyślnie 2) i dowolny dodatni limit paczki w GB.</p>
+  <p><small>Aktualna wersja zleca pobranie ręcznie przez menedżer Androida.
+  Automatyczne kasowanie po obejrzeniu, automatyczne uzupełnianie oraz uruchamianie
+  lokalnej kopii po zwykłym kliknięciu „Odtwórz” nie są jeszcze obsługiwane.
+  Limit dotyczy szacowanego rozmiaru zlecanej paczki, nie całej pamięci telefonu.</small></p>
+ </section>
   <section class="mc-panel" aria-label="Aktualizacje MisioCache">
   <section id="mc-updates-panel" aria-labelledby="mc-updates-heading" style="padding:12px 0 22px">
    <h2 id="mc-updates-heading">Aktualizacje MisioCache</h2>
@@ -190,245 +45,13 @@
    <p><small>Instalacja odbywa się wyłącznie przez natywny menedżer Jellyfina, z repozytorium MisioCache. Nie jest możliwa, dopóki odpowiednia zgodna wersja nie pojawi się w jego katalogu. Po instalacji może być wymagany restart serwera.</small></p>
   </section>
   </section>
- </div>
- <script>
- (function(){
-  'use strict';
-  const view=document.getElementById('misioCacheConfigPage');
-  const pluginId='5cf36828-5b7b-4d18-a28e-1e87922e505b';
-  const el=(id)=>view.querySelector('#'+id);
-  const fmt=(bytes)=>typeof bytes==='number'&&Number.isFinite(bytes)?(bytes/1073741824).toFixed(2)+' GiB':'Niedostępne';
-  async function check(){
-   el('mc-secure').textContent=window.isSecureContext?'Tak':'Nie (np. HTTP bez localhost)';
-   el('mc-cache-storage').textContent=('caches' in window)?'API dostępne':'Brak API';
-   el('mc-worker').textContent=('serviceWorker' in navigator)?'API dostępne':'Brak API';
-   el('mc-quota').textContent='Sprawdzanie…';el('mc-usage').textContent='Sprawdzanie…';
-   try{
-    if(!navigator.storage||typeof navigator.storage.estimate!=='function')throw Error('Brak StorageManager.estimate');
-    const estimate=await navigator.storage.estimate();
-    el('mc-quota').textContent=fmt(estimate.quota);
-    el('mc-usage').textContent=fmt(estimate.usage);
-    el('mc-check-status').textContent='Sprawdzono możliwości tego klienta. Nie uruchomiono żadnego buforowania.';
-   }catch(err){
-    el('mc-quota').textContent='Niedostępne';el('mc-usage').textContent='Niedostępne';
-    el('mc-check-status').textContent='Część informacji zablokowana przez środowisko urządzenia.';
-   }
-  }
-  async function read(){
-   try{
-    if(!window.ApiClient)throw Error('ApiClient niedostępny');
-    const c=await ApiClient.getPluginConfiguration(pluginId);
-    el('mc-until-end').checked=!!c.DownloadUntilEnd;
-    el('mc-preserve').checked=!!c.PreserveWatchedPartsUntilCompletion;
-    el('mc-pause').checked=!!c.DownloadWhilePaused;
-    el('mc-finish').checked=!!c.DeleteAfterCompleted;
-    el('mc-retain').value=Number.isFinite(Number(c.KeepAfterStopMinutes))?c.KeepAfterStopMinutes:240;
-    el('mc-limit').value=Number.isFinite(Number(c.PlannedMaxDeviceCacheGiB))?c.PlannedMaxDeviceCacheGiB:8;
-    el('mc-save-status').textContent='Preferencje odczytane z Jellyfina.';
-   }catch(err){el('mc-save-status').textContent='Nie udało się pobrać konfiguracji: '+String(err.message||err);}
-  }
-  async function save(event){
-   event.preventDefault();
-   el('mc-save-status').textContent='Zapisywanie…';
-   const retain=Number(el('mc-retain').value),limit=Number(el('mc-limit').value);
-   if(!Number.isInteger(retain)||retain<0||retain>10080||!Number.isInteger(limit)||limit<1||limit>512){
-    el('mc-save-status').textContent='Podaj poprawny czas 0–10080 minut i limit 1–512 GiB.';return;
-   }
-   try{
-    const c=await ApiClient.getPluginConfiguration(pluginId);
-    c.DownloadUntilEnd=el('mc-until-end').checked;
-    c.PreserveWatchedPartsUntilCompletion=el('mc-preserve').checked;
-    c.DownloadWhilePaused=el('mc-pause').checked;
-    c.DeleteAfterCompleted=el('mc-finish').checked;
-    c.KeepAfterStopMinutes=retain;
-    c.PlannedMaxDeviceCacheGiB=limit;
-    await ApiClient.updatePluginConfiguration(pluginId,c);
-    el('mc-save-status').textContent='Zapisano planowaną politykę. Odtwarzanie i cache nadal nie są modyfikowane przez tę wersję.';
-   }catch(err){el('mc-save-status').textContent='Nie udało się zapisać: '+String(err.message||err);}
-  }
-  const traffic=(function(){
-   const root=view.querySelector('#mc-observation');
-   const getId=id=>root.querySelector('#'+id);
-   const get=(obj,...keys)=>{for(const k of keys){if(obj&&obj[k]!==undefined)return obj[k];}return undefined;};
-   const status=t=>getId('mc-http-status').textContent=t;
-   const api=path=>typeof ApiClient?.getUrl==='function'?ApiClient.getUrl(path):'/'+path;
-   async function request(path,method='GET'){
-    const t=typeof ApiClient?.accessToken==='function'?ApiClient.accessToken():ApiClient?.accessToken;
-    if(!t)throw Error('Brak autoryzacji Jellyfin.');
-    const authorization='MediaBrowser Client="MisioCache", Device="Jellyfin Web", DeviceId="misiocache-diagnostics", Version="1.0.0", Token="'+String(t).replace(/["\r\n]/g,'')+'"';
-    const response=await fetch(api(path),{method,cache:'no-store',headers:{Authorization:authorization}});
-    if(!response.ok)throw Error('HTTP '+response.status+' dla '+path);
-    return response.status===204?null:await response.json();
-   }
-   function formatByteCount(value){
-    const n=Number(value);
-    if(!Number.isSafeInteger(n)||n<0)return '—';
-    return new Intl.NumberFormat('pl-PL').format(n)+' B ('+(n/1048576).toFixed(2)+' MiB)';
-   }
-   function compactBytes(value){
-    const n=Number(value);
-    if(!Number.isFinite(n)||n<0)return '—';
-    if(n<1024)return n.toFixed(0)+' B';
-    if(n<1048576)return (n/1024).toFixed(1)+' KiB';
-    return (n/1048576).toFixed(1)+' MiB';
-   }
-   function compactMs(v){return v===null||v===undefined?'—':String(v);}
-   function drawCompactRanges(data){
-    const body=getId('mc-compact-recent');body.replaceChildren();
-    const items=get(data,'recentRanges','RecentRanges')||[];
-    if(!items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='Brak zakresów GET + 206';tr.appendChild(td);body.appendChild(tr);return;}
-    for(const item of items.slice(-6).reverse()){
-     const v=(...names)=>get(item,...names);
-     const tr=document.createElement('tr');
-     const accepted=v('meteredRangeBytes','MeteredRangeBytes');
-     const repeated=v('meteredRepeatedBytes','MeteredRepeatedBytes');
-     const cells=[v('utc','Utc')||'—',v('media','Media')||'—',
-      v('movement','Movement')||'—',compactBytes(accepted),compactBytes(repeated),
-      compactMs(v('durationMs','DurationMs'))+' ms',
-      v('cancelled','Cancelled')?'Anulowane':v('failed','Failed')?'Błąd':
-      accepted===null||accepted===undefined?'Nieznane':v('incomplete','Incomplete')?'Niepełne':'OK'];
-     for(const value of cells){const td=document.createElement('td');td.textContent=String(value);tr.appendChild(td);}
-     body.appendChild(tr);
-    }
-   }
-   function drawCompact(d){
-    const n=(...names)=>String(get(d,...names)??0);
-    const b=(...names)=>compactBytes(get(d,...names));
-    const put=(id,value)=>getId('mc-kpi-'+id).textContent=value;
-    put('requests',n('totalRequests','TotalRequests'));
-    put('range206',n('rangeRequests','RangeRequests')+' / '+n('partialResponses206','PartialResponses206'));
-    put('validated',n('validPartialRanges','ValidPartialRanges'));
-    put('invalid',n('unparsedFileRanges','UnparsedFileRanges'));
-    put('overlap',n('overlappingResponses','OverlappingResponses'));
-    put('issues',n('unsatisfiableRanges416','UnsatisfiableRanges416')+' / '+n('failedResponses','FailedResponses'));
-    const hasBodySamples=Number(get(d,'meteredResponses','MeteredResponses')||0)>0;
-    put('accepted',hasBodySamples?b('meteredAllBodyBytes','MeteredAllBodyBytes'):'—');
-    put('metered',hasBodySamples?b('meteredRangeBytes','MeteredRangeBytes'):'—');
-    put('realunique',hasBodySamples?b('meteredUniqueBytes','MeteredUniqueBytes'):'—');
-    put('realrepeat',hasBodySamples?b('meteredRepeatedBytes','MeteredRepeatedBytes'):'—');
-    const pct=get(d,'meteredRepeatPercent','MeteredRepeatPercent');
-    put('realrepeat-pct',pct===null||pct===undefined?'—':Number(pct).toFixed(1)+'%');
-    put('unknown',n('unknownBodyResponses','UnknownBodyResponses'));
-    put('forward',n('forwardStarts','ForwardStarts'));
-    put('backward',n('backwardStarts','BackwardStarts'));
-    put('same',n('sameStarts','SameStarts'));
-    put('forwardrepeat',b('forwardRepeatedBytes','ForwardRepeatedBytes'));
-    put('backrepeat',b('backwardRepeatedBytes','BackwardRepeatedBytes'));
-    put('maxjump',b('maxRangeStartJumpBytes','MaxRangeStartJumpBytes'));
-    put('partial',n('incompleteResponses','IncompleteResponses'));
-    put('cancel',n('cancelledResponses','CancelledResponses')+' / '+n('failedResponses','FailedResponses'));
-    put('mbps',compactMs(get(d,'averageBodyMbps','AverageBodyMbps')));
-    put('p95',compactMs(get(d,'p95RequestMs','P95RequestMs')));
-    put('first',compactMs(get(d,'p95FirstWriteMs','P95FirstWriteMs')));
-    put('declared',b('declaredPartialBytes','DeclaredPartialBytes')+' / '+b('declaredRepeatedBytes','DeclaredRepeatedBytes'));
-    drawCompactRanges(d);
-   }
-   function drawRanges(data){
-    const body=getId('mc-byte-recent');body.replaceChildren();
-    const list=get(data,'recentRanges','RecentRanges');
-    if(!Array.isArray(list)||!list.length){
-     const row=document.createElement('tr');const cell=document.createElement('td');cell.colSpan=9;cell.textContent='Brak rozpoznanych zakresów GET + 206 w oknie pomiaru';row.appendChild(cell);body.appendChild(row);return;
-    }
-    for(const sample of list.slice(-25).reverse()){
-     const tr=document.createElement('tr');
-     const v=(...keys)=>get(sample,...keys);
-     const start=v('start','Start'),end=v('end','End');
-     const cells=[String(v('utc','Utc')||'—'),String(v('media','Media')||'M?'),
-       String(start??'—')+'–'+String(end??'—'),formatByteCount(v('declaredBytes','DeclaredBytes')),
-       formatByteCount(v('overlappingBytes','OverlappingBytes')),
-       String(v('movement','Movement')||'—'),
-       formatByteCount(v('meteredRangeBytes','MeteredRangeBytes')),
-       formatByteCount(v('meteredRepeatedBytes','MeteredRepeatedBytes')),
-       String(v('durationMs','DurationMs')??'—')+' ms'];
-     for(const value of cells){const td=document.createElement('td');td.textContent=value;tr.appendChild(td);}
-     body.appendChild(tr);
-    }
-   }
-   function drawSessions(data){
-    const list=getId('mc-live-sessions');list.replaceChildren();
-    const sessions=Array.isArray(data)?data:(get(data,'Items','items')||[]);
-    const playing=sessions.filter(s=>get(s,'NowPlayingItem','nowPlayingItem'));
-    getId('mc-compact-sessions').textContent=playing.length?'Sesje: '+playing.length+' aktywne':'Sesje: brak odtwarzania';
-    if(!playing.length){const li=document.createElement('li');li.textContent='Brak aktywnych odtworzeń zgłoszonych przez Jellyfin.';list.appendChild(li);return;}
-    for(const s of playing.slice(0,25)){
-     const item=get(s,'NowPlayingItem','nowPlayingItem');
-     const state=get(s,'PlayState','playState')||{};
-     const raw=get(state,'PlayMethod','playMethod');
-     const method=typeof raw==='string'&&/^(DirectPlay|DirectStream|Transcode)$/.test(raw)?raw:'Nieznany';
-     const li=document.createElement('li');
-     const name=String(get(item,'Name','name')||'Materiał bez nazwy');
-     const client=String(get(s,'Client','client')||'Klient bez nazwy');
-     // textContent, never innerHTML: names may come from untrusted NFO.
-     li.textContent=name+' — '+client+' — '+method;
-     list.appendChild(li);
-    }
-    if(playing.length>25){const li=document.createElement('li');li.textContent='Pozostałe sesje pominięto w podglądzie.';list.appendChild(li);}
-   }
-   async function refresh(){
-    status('Odczytuję stan z serwera…');
-    const [http,sessions]=await Promise.allSettled([request('MisioCache/api/diagnostics/http'),request('Sessions')]);
-    if(http.status==='fulfilled'){
-     const d=http.value||{};
-     const num=(...names)=>String(get(d,...names)??0);
-     const installed=!!get(d,'pipelineInstalled','PipelineInstalled');
-     const enabled=!!get(d,'enabled','Enabled');
-     getId('mc-http-active').textContent=!installed?'Brak aktywnego obserwatora — uruchom ponownie Jellyfin':enabled?'Aktywna ('+(get(d,'bodyMeterEnabled','BodyMeterEnabled')?'liczniki + bajty':'tylko liczniki')+')':'Wyłączona';
-     getId('mc-http-optin').checked=enabled;
-     getId('mc-meter-optin').checked=!!get(d,'bodyMeterEnabled','BodyMeterEnabled');
-     getId('mc-http-total').textContent=num('totalRequests','TotalRequests');
-     getId('mc-http-range').textContent=num('rangeRequests','RangeRequests');
-     getId('mc-http-206').textContent=num('partialResponses206','PartialResponses206');
-     getId('mc-http-valid').textContent=num('validPartialRanges','ValidPartialRanges');
-     getId('mc-http-ignored').textContent=num('ignoredRange200','IgnoredRange200');
-     getId('mc-http-416').textContent=num('unsatisfiableRanges416','UnsatisfiableRanges416');
-     getId('mc-http-types').textContent=[num('fileRequests','FileRequests'),num('playlistRequests','PlaylistRequests'),num('segmentRequests','SegmentRequests')].join(' / ');
-     getId('mc-byte-parsed').textContent=num('parsedFileRanges','ParsedFileRanges');
-     getId('mc-byte-unparsed').textContent=num('unparsedFileRanges','UnparsedFileRanges');
-     getId('mc-byte-media').textContent=num('anonymousMediaCount','AnonymousMediaCount');
-     getId('mc-byte-overlap-count').textContent=num('overlappingResponses','OverlappingResponses');
-     getId('mc-byte-total').textContent=formatByteCount(get(d,'declaredPartialBytes','DeclaredPartialBytes'));
-     getId('mc-byte-unique').textContent=formatByteCount(get(d,'declaredUniqueBytes','DeclaredUniqueBytes'));
-     getId('mc-byte-repeated').textContent=formatByteCount(get(d,'declaredRepeatedBytes','DeclaredRepeatedBytes'));
-     drawRanges(d);
-     drawCompact(d);
-    }
-    if(sessions.status==='fulfilled')drawSessions(sessions.value);
-    else {getId('mc-live-sessions').replaceChildren(); const li=document.createElement('li');li.textContent='Nie udało się odczytać sesji: '+String(sessions.reason?.message||sessions.reason);getId('mc-live-sessions').appendChild(li);}
-    if(http.status==='rejected')status('Błąd obserwacji HTTP: '+String(http.reason?.message||http.reason));
-    else status(sessions.status==='fulfilled'?'Odczytano liczniki i aktywne sesje.':'Odczytano liczniki HTTP; sesje są niedostępne.');
-   }
-   async function toggle(){
-    const field=getId('mc-http-optin'); field.disabled=true;
-    try{
-     const current=await ApiClient.getPluginConfiguration(pluginId);
-     current.EnablePassiveHttpDiagnostics=field.checked;
-     await ApiClient.updatePluginConfiguration(pluginId,current);
-     status(field.checked?'Włączono pasywny pomiar; naciśnij „Sprawdź odtwarzanie i ruch”.':'Wyłączono zbieranie nowych próbek.');
-     await refresh();
-    }catch(error){field.checked=!field.checked;status('Nie udało się zapisać ustawienia: '+String(error.message||error));}
-    finally{field.disabled=false;}
-   }
-   async function toggleMeter(){
-    const field=getId('mc-meter-optin');field.disabled=true;
-    try{
-     const current=await ApiClient.getPluginConfiguration(pluginId);
-     current.EnableResponseBodyByteMeter=field.checked;
-     await ApiClient.updatePluginConfiguration(pluginId,current);
-     await refresh();
-     status(field.checked?'Pomiar zapisu bajtów włączony. Obserwacja HTTP również musi być aktywna.':'Wyłączono dodatkowy pomiar bajtów — podstawowe liczniki nadal działają.');
-    }catch(error){field.checked=!field.checked;status('Błąd zapisu trybu pomiarowego: '+String(error.message||error));}
-    finally{field.disabled=false;}
-   }
-   async function reset(){
-    try{await request('MisioCache/api/diagnostics/http/reset','POST');await refresh();status('Wyzerowano liczniki oraz historię zakresów. Dla wykrywania nakładania obejrzyj fragment, a potem cofnij bez ponownego zerowania.');}
-    catch(error){status('Nie udało się wyzerować liczników: '+String(error.message||error));}
-   }
-   getId('mc-http-optin').addEventListener('change',toggle);
-   getId('mc-meter-optin').addEventListener('change',toggleMeter);
-   getId('mc-http-refresh').addEventListener('click',refresh);
-   getId('mc-http-reset').addEventListener('click',reset);
-   return {refresh};
-  })();
+</div>
+<script>
+(function(){
+ 'use strict';
+ const view=document.getElementById('misioCacheConfigPage');
+ const pluginId='5cf36828-5b7b-4d18-a28e-1e87922e505b';
+ if(!view)return;
   const updates=(function(){
    const panel=view.querySelector('#mc-updates-panel');
    const refs={installed:panel.querySelector('#mc-update-installed'),
@@ -648,14 +271,9 @@
    }
    return {activate};
   })();
-  if(view){
-   updates.activate();
-   void traffic.refresh();
-   view.querySelector('#mc-check').addEventListener('click',check);
-   view.querySelector('#mc-policy-form').addEventListener('submit',save);
-   view.addEventListener('pageshow',function(){check();read();});
-  }
- })();
- </script>
+
+ updates.activate();
+})();
+</script>
 </div>
 </body></html>

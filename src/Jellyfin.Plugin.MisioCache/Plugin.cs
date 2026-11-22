@@ -15,7 +15,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 
     public override Guid Id => PluginId;
     public override string Name => "MisioCache";
-    public override string Description => "Diagnostyka klienta i pasywna analiza strumieni HTTP Range/206. Bez zmiany odtwarzacza.";
+    public override string Description => "Opcjonalne Smart Downloads na Androidzie przez oficjalny menedżer Jellyfin oraz aktualizacje wtyczki.";
 
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
         : base(applicationPaths, xmlSerializer)
